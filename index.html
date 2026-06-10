@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>算命学鑑定ツール</title>
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/icon.png">
+    <style>
+        body { font-family: "Times New Roman", "Yu Mincho", "游明朝", serif; padding: 20px; max-width: 600px; margin: 0 auto; background-color: #fcfbf9; color: #333; }
+        .input-group { margin-bottom: 15px; }
+        label { display: inline-block; width: 80px; font-weight: bold; }
+        input[type="number"] { padding: 6px; width: 80px; font-size: 16px; font-family: inherit; }
+        #calc-btn { padding: 10px 20px; font-size: 16px; cursor: pointer; background: #8a1414; color: #fff; border: none; border-radius: 4px; margin-top: 10px; margin-bottom: 30px; }
+        
+        .meishiki-table { border-collapse: collapse; margin-bottom: 20px; }
+        .meishiki-table td { vertical-align: top; padding: 0 15px; border-right: 1px dashed #ccc; text-align: center; font-size: 16px; }
+        .meishiki-table td:last-child { border-right: none; }
+        .pillar-label { font-size: 14px; font-weight: bold; margin-bottom: 5px; }
+        .eto-text { writing-mode: vertical-rl; text-orientation: upright; font-size: 28px; font-weight: bold; letter-spacing: 5px; line-height: 1.5; display: inline-block; }
+        .eto-text-small { writing-mode: vertical-rl; text-orientation: upright; font-size: 22px; font-weight: bold; letter-spacing: 5px; line-height: 1.5; display: inline-block; color: #555; }
+        
+        #body-map { border-collapse: collapse; margin-top: 20px; table-layout: fixed; }
+        #body-map td { font-size: 24px !important; text-align: center; vertical-align: middle; padding: 20px; width: 60px; height: 60px; border: 1px solid #000; }
+        #pos-h { border-top: none !important; }
+        #pos-e { border-right: none !important; border-bottom: none !important; }
+        #pos-b { border-left: none !important; }
+        #pos-d { border-bottom: none !important; }
+        #pos-f { border-right: none !important; }
+        #pos-a, #pos-g, #pos-c { border: none !important; }
+
+        .daiun-table { border-collapse: collapse; width: 100%; max-width: 500px; margin-top: 20px; }
+        .daiun-table th, .daiun-table td { padding: 10px; border: 1px solid #ccc; text-align: center; font-family: "Yu Mincho", "游明朝", serif; }
+        .daiun-table th { background-color: #f2f2f2; }
+    </style>
+</head>
+<body>
+
+    <h1>算命学・命式算出</h1>
+    <div class="input-group"><label>西暦年:</label><input type="number" id="year-input" value="2026"> 年</div>
+    <div class="input-group"><label>月:</label><input type="number" id="month-input" value="6"> 月</div>
+    <div class="input-group"><label>日:</label><input type="number" id="day-input" value="2"> 日</div>
+    <div class="input-group">
+        <label>性別:</label>
+        <input type="radio" id="male" name="gender" value="male" checked> 男
+        <input type="radio" id="female" name="gender" value="female"> 女
+    </div>
+    <button id="calc-btn">算出する</button>
+
+    <div id="result-area" style="display: none;">
+        <table class="meishiki-table">
+            <tr>
+                <td><div class="pillar-label">天中殺</div><div id="tenchusatsu-text" class="eto-text-small">--</div></td>
+                <td><div class="pillar-label">日</div><div id="day-eto" class="eto-text">--</div><div id="day-zoukan"></div></td>
+                <td><div class="pillar-label">月</div><div id="month-eto" class="eto-text">--</div><div id="month-zoukan"></div></td>
+                <td><div class="pillar-label">年</div><div id="year-eto" class="eto-text">--</div><div id="year-zoukan"></div></td>
+                <td><div class="pillar-label">年干天中</div><div id="nenkan-tenchu-text" class="eto-text-small">--</div></td>
+            </tr>
+        </table>
+
+        <div id="shugoshin-result" style="margin: 20px 0; border: 0px solid #999; padding: 10px; display: none;">
+            <div id="shugoshin-content" style="font-size: 16px; line-height: 1.6;"></div>
+        </div>
+
+        <table id="body-map">
+            <tr><td id="pos-a">--</td><td id="pos-h">頭</td><td id="pos-g">初年</td></tr>
+            <tr><td id="pos-b">右手</td><td id="pos-i">胸</td><td id="pos-f">左手</td></tr>
+            <tr><td id="pos-c">晩年</td><td id="pos-d">腹</td><td id="pos-e">中年</td></tr>
+        </table>
+
+        <h3>大運表</h3>
+        <table class="daiun-table">
+            <thead>
+                <tr><th>年齢</th><th>大運</th><th>十大主星</th><th>十二大従星</th></tr>
+            </thead>
+            <tbody id="daiun-table-body"></tbody>
+        </table>
+    </div>
+
+    <script src="sekki_data.js"></script>
+    <script src="star_tables.js"></script>
+    <script src="shugoshin_data.js"></script>
+    <script src="main.js"></script>
+    <script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js')
+        .then((reg) => console.log('Service Worker 登録完了: ', reg.scope))
+        .catch((err) => console.log('Service Worker 登録失敗: ', err));
+    });
+  }
+</script>
+</body>
+</html>
