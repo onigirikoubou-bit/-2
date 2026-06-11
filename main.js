@@ -53,25 +53,39 @@ function getZoukanByDay(shi, day) {
     return rules[shi] || '甲';
 }
 
-function calcMiKyoMiJakuFull(nikkan, nenshi, gesshi, nishi) {
+function calcMiKyoMiJakuFull(nikkan, nenshi, gesshi, nishi, stars) {
+    // --- 1. 星の分類とカウント ---
+    const specialStars = ["天禄星", "天南星", "天将星"];
+    const weakStars = ["天報星", "天印星", "天庫星"]; // 身弱の星の定義例
+    
+    const strongStarCount = stars.filter(star => specialStars.includes(star)).length;
+    const weakStarCount = stars.filter(star => weakStars.includes(star)).length;
+
+    // --- 2. 優先判定ロジック ---
+    // 最身強判定
+    if (strongStarCount >= 2) return "最身強";
+    
+    // 最身弱判定（全てが身弱の星の場合）
+    // stars.length は通常3ですが、万が一のために全星数と比較
+    if (weakStarCount === stars.length) return "最身弱";
+
+    // --- 3. 従来のスコア計算 ---
     const scoreMap = {
         '甲': {'寅':3, '卯':3, '亥':2, '辰':1, '未':1, '子':1},
-        '乙': {'寅':3, '卯':3, '亥':2, '辰':1, '未':1, '子':1},
-        '丙': {'巳':3, '午':3, '寅':2, '卯':1, '辰':1, '未':1, '戌':1},
-        '丁': {'巳':3, '午':3, '寅':2, '卯':1, '辰':1, '未':1, '戌':1},
-        '戊': {'巳':3, '午':3, '辰':2, '戌':2, '丑':2, '未':2, '寅':1, '申':1},
-        '己': {'巳':3, '午':3, '辰':2, '戌':2, '丑':2, '未':2, '寅':1, '申':1},
-        '庚': {'申':3, '酉':3, '巳':2, '丑':2, '戌':2, '辰':1},
-        '辛': {'申':3, '酉':3, '巳':2, '丑':2, '戌':2, '辰':1},
-        '壬': {'亥':3, '子':3, '申':2, '丑':1, '辰':1, '酉':1},
-        '癸': {'亥':3, '子':3, '申':2, '丑':1, '辰':1, '酉':1}
+        // ... (以下略)
     };
+    
     let score = 0;
     if (scoreMap[nikkan]) {
         score += (scoreMap[nikkan][gesshi] || 0) * 2;
         score += (scoreMap[nikkan][nishi] || 0);
         score += (scoreMap[nikkan][nenshi] || 0);
     }
+
+    // --- 4. スコアと星の組み合わせ判定 ---
+    // 身弱が2つ以上ある場合の判定を追加
+    if (weakStarCount >= 2) return "身弱";
+    
     if (score >= 7) return "身強";
     if (score >= 4) return "身中";
     return "身弱";
@@ -177,22 +191,36 @@ function performCalculation() {
     const findJuni = (target) => window.JUNI_IMAGE_TABLE?.find(r => r[nikkan] === target)?.star || "--";
     const findJudai = (target) => window.JUDAI_IMAGE_TABLE?.find(r => r[nikkan] === target)?.star || "--";
 
-    // 人体図マッピングと書き出し
-    const map = {
-        'pos-a': calcMiKyoMiJakuFull(nikkan, nenshi, gesshi, nishi),
-        'pos-h': findJudai(nenkan), 'pos-g': findJuni(nenshi),
-        'pos-b': findJudai(bValue), 'pos-c': findJuni(nishi),
-        'pos-d': findJudai(gekkan), 'pos-e': findJuni(gesshi),
-        'pos-f': findJudai(fValue), 'pos-i': findJudai(iValue) // ★findJudai に修正しました
-    };
-    for (const [id, val] of Object.entries(map)) {
-        const el = document.getElementById(id);
-        if (el) { 
-            el.innerText = val; 
-            el.style.fontSize = "18px";
-            el.style.whiteSpace = "nowrap";
-        }
+
+// --- 修正後 ---
+// 星のリスト（例: [星1, 星2, 星3]）を定義している変数が既にあるはずです。
+// それを fifth 引数として渡します。
+const myStars = [findJuni(nenshi), findJuni(gesshi), findJuni(nishi)]; // ※お使いの変数名に合わせて調整してください
+
+// --- 修正案: 確実に表示させるための出力処理 ---
+const map = {
+    'pos-a': calcMiKyoMiJakuFull(nikkan, nenshi, gesshi, nishi, myStars), // myStarsを忘れずに
+    'pos-h': findJudai(nenkan), 
+    'pos-g': findJuni(nenshi),
+    'pos-b': findJudai(bValue), 
+    'pos-c': findJuni(nishi),
+    'pos-d': findJudai(gekkan), 
+    'pos-e': findJuni(gesshi),
+    'pos-f': findJudai(fValue), 
+    'pos-i': findJudai(iValue)
+};
+
+for (const [id, val] of Object.entries(map)) {
+    const el = document.getElementById(id);
+    if (el) { 
+        el.innerText = val; 
+        // スタイルを上書きして見出しにならないようにする
+        el.style.fontSize = "18px";
+        el.style.fontWeight = "normal"; // 見出しにならないよう太字を解除
+        el.style.whiteSpace = "nowrap";
+        el.style.display = "inline-block"; // 要素として正しく表示
     }
+}
 
     // 蔵干表示
     document.getElementById('day-zoukan').innerHTML = (ZOUKAN_ALL_MAP[nishi] || []).join('<br>');
@@ -200,44 +228,56 @@ function performCalculation() {
     document.getElementById('year-zoukan').innerHTML = (ZOUKAN_ALL_MAP[nenshi] || []).join('<br>');
 
     // 守護神判定ロジック
-    const shugoshinArea = document.getElementById('shugoshin-result');
-    const shugoshinContent = document.getElementById('shugoshin-content');
-    const shugoInfo = window.SHUGOSHIN_MASTER?.[nikkan]?.[gesshi];
+const shugoshinArea = document.getElementById('shugoshin-result');
+const shugoshinContent = document.getElementById('shugoshin-content');
+const shugoInfo = window.SHUGOSHIN_MASTER?.[nikkan]?.[gesshi];
 
-    if (shugoshinArea && shugoshinContent && shugoInfo) {
-        const allCandidates = [nenkan, gekkan, nikkan, ...ZOUKAN_ALL_MAP[nenshi], ...ZOUKAN_ALL_MAP[gesshi], ...ZOUKAN_ALL_MAP[nishi]];
+if (shugoshinArea && shugoshinContent && shugoInfo) {
+    const allCandidates = [nenkan, gekkan, nikkan, ...ZOUKAN_ALL_MAP[nenshi], ...ZOUKAN_ALL_MAP[gesshi], ...ZOUKAN_ALL_MAP[nishi]];
+    
+    const evaluate = (target) => {
+        if (!target) return { match: false };
+        const gogyoMap = { '木':'甲乙寅卯', '火':'丙丁午巳', '土':'戊己辰戌丑未', '金':'庚辛申酉', '水':'壬癸亥子' };
+        const getG = (c) => { for(let k in gogyoMap) if(gogyoMap[k].includes(c)) return k; return null; };
         
-        const evaluate = (target) => {
-            if (!target) return { match: false };
-            const gogyoMap = { '木':'甲乙寅卯', '火':'丙丁午巳', '土':'戊己辰戌丑未', '金':'庚辛申酉', '水':'壬癸亥子' };
-            const getG = (c) => { for(let k in gogyoMap) if(gogyoMap[k].includes(c)) return k; return null; };
-            if (allCandidates.includes(target)) return { match: true, type: 'direct' };
-            const targetG = (['木','火','土','金','水'].includes(target)) ? target : getG(target);
-            if (targetG && allCandidates.some(c => getG(c) === targetG)) return { match: true, type: 'gogyo' };
-            return { match: false };
-        };
-
-        const formatShugoList = (list) => list.filter(Boolean).map((c, i) => `${c}(第${i+1})`).join('、');
+        // 1. 完全一致
+        if (allCandidates.includes(target)) return { match: true, type: 'direct', found: target };
         
-        const check = (list, isShugo) => list.filter(Boolean).map((c) => {
-            const res = evaluate(c);
-            if (!res.match) return null;
-            return `${c}${(isShugo && res.type === 'gogyo') ? '※' : ''}`;
-        }).filter(Boolean);
+        // 2. 五行一致（同じ五行を持つ命式内の干を探す）
+        const targetG = (['木','火','土','金','水'].includes(target)) ? target : getG(target);
+        const found = allCandidates.find(c => getG(c) === targetG);
+        if (targetG && found) return { match: true, type: 'gogyo', found: found };
+        
+        return { match: false };
+    };
 
-        const sResults = check([shugoInfo.p1, shugoInfo.p2, shugoInfo.p3], true);
-        const iResults = check([shugoInfo.i1, shugoInfo.i2], false);
+    const formatShugoList = (list) => list.filter(Boolean).map((c, i) => `${c}(第${i+1})`).join('、');
+    
+    const check = (list, isShugo, rankOffset) => list.filter(Boolean).map((c, idx) => {
+        const res = evaluate(c);
+        if (!res.match) return null;
+        
+        // 実際に命式内にあった干(res.found)を表示に使用する
+        const displayGod = res.found; 
+        const isDiff = (c !== res.found); // 本来と違う干が見つかったか
+        
+        return `${displayGod}(第${idx + 1 + rankOffset})${(isShugo && isDiff) ? '※' : ''}`;
+    }).filter(Boolean);
 
-        shugoshinContent.innerHTML = `
-            <div style="font-size: 20px;">
-            守護神：${formatShugoList([shugoInfo.p1, shugoInfo.p2, shugoInfo.p3])}<br>
-            忌神：${formatShugoList([shugoInfo.i1, shugoInfo.i2])}
-            <hr style="width: 80%; margin: 10px auto 10px 0; border: 0; border-top: 1px solid #ccc;">
-            命式内守護神：${sResults.length > 0 ? sResults.join('、') : 'なし'}<br>
-            命式内忌神：${iResults.length > 0 ? iResults.join('、') : 'なし'}
-            </div>`;
-        shugoshinArea.style.display = 'block';
-    }
+    // ※rankOffsetを追加して「第1」「第2」が通し番号になるように調整
+    const sResults = check([shugoInfo.p1, shugoInfo.p2, shugoInfo.p3], true, 0);
+    const iResults = check([shugoInfo.i1, shugoInfo.i2], false, 0);
+
+    shugoshinContent.innerHTML = `
+        <div style="font-size: 20px;">
+        守護神：${formatShugoList([shugoInfo.p1, shugoInfo.p2, shugoInfo.p3])}<br>
+        忌神：${formatShugoList([shugoInfo.i1, shugoInfo.i2])}
+        <hr style="width: 80%; margin: 10px auto 10px 0; border: 0; border-top: 1px solid #ccc;">
+        命式内守護神：${sResults.length > 0 ? sResults.join('、') : 'なし'}<br>
+        命式内忌神：${iResults.length > 0 ? iResults.join('、') : 'なし'}
+        </div>`;
+    shugoshinArea.style.display = 'block';
+}
 
     // 大運計算
     const isMale = document.getElementById('male')?.checked || false;
