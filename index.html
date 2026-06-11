@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>朱学院流 算命学鑑定ツール</title>
+    <title>算命学鑑定ツール</title>
     <link rel="manifest" href="/manifest.json">
-<link rel="apple-touch-icon" href="/icon-192.png">
+<link rel="apple-touch-icon" sizes="192x192" href="/icon-192.png">
 <link rel="apple-touch-icon" sizes="512x512" href="/icon-512.png">
     <style>
         body { font-family: "Times New Roman", "Yu Mincho", "游明朝", serif; padding: 20px; max-width: 600px; margin: 0 auto; background-color: #fcfbf9; color: #333; }
@@ -35,29 +35,29 @@
         .daiun-table th, .daiun-table td { padding: 10px; border: 1px solid #ccc; text-align: center; font-family: "Yu Mincho", "游明朝", serif; }
         .daiun-table th { background-color: #f2f2f2; }
 
-        /* iPhoneのみ：縦書きを諦め、重なりを防ぐ「整列横書き」モードへ */
-@supports (-webkit-touch-callout: none) {
-    .meishiki-table td {
-        /* 縦書きの強制を解除 */
-        writing-mode: horizontal-tb !important;
-        -webkit-writing-mode: horizontal-tb !important;
-        
-        /* 縦書き崩れによる重なりを防ぐため、高さを自動にする */
-        height: auto !important;
-        display: table-cell !important;
-        
-        /* 文字が重ならないよう行間を確保 */
-        line-height: 2.0 !important;
-        padding-bottom: 20px !important;
-    }
 
-    .eto-text, .eto-text-small {
-        /* 横書きとして整列させる */
-        display: block !important;
-        width: 100% !important;
-        text-align: center !important;
-        margin: 5px 0 !important;
-    }
+   /* 干支表示エリアの強制縦並び (最強設定) */
+.eto-grid {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    
+    font-size: 28px !important;
+    font-weight: bold !important;
+    line-height: 1.2 !important;
+    height: 75px !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    white-space: nowrap !important;
+}
+
+/* 干支の1文字ずつ(span)の設定 */
+.eto-grid span {
+    display: block !important;
+    font-size: 28px !important;
+    font-weight: bold !important;
+    color: inherit; /* 文字色が親要素とずれるのを防ぐ */
 }
 
     </style>
@@ -77,14 +77,28 @@
 
     <div id="result-area" style="display: none;">
         <table class="meishiki-table">
-            <tr>
-                <td><div class="pillar-label">天中殺</div><div id="tenchusatsu-text" class="eto-text-small">--</div></td>
-                <td><div class="pillar-label">日</div><div id="day-eto" class="eto-text">--</div><div id="day-zoukan"></div></td>
-                <td><div class="pillar-label">月</div><div id="month-eto" class="eto-text">--</div><div id="month-zoukan"></div></td>
-                <td><div class="pillar-label">年</div><div id="year-eto" class="eto-text">--</div><div id="year-zoukan"></div></td>
-                <td><div class="pillar-label">年干天中</div><div id="nenkan-tenchu-text" class="eto-text-small">--</div></td>
-            </tr>
-        </table>
+    <tr>
+        <td><div class="pillar-label">天中殺</div><div id="tenchusatsu-text" class="eto-text-small">--</div></td>
+        
+        <td>
+            <div class="pillar-label">日</div>
+            <div id="day-eto" class="eto-grid" style="display: flex !important; flex-direction: column !important; align-items: center !important; font-size: 28px !important; font-weight: bold !important; line-height: 1.2 !important; height: 75px !important;"></div>
+            <div id="day-zoukan"></div>
+        </td>
+        <td>
+            <div class="pillar-label">月</div>
+            <div id="month-eto" class="eto-grid" style="display: flex !important; flex-direction: column !important; align-items: center !important; font-size: 28px !important; font-weight: bold !important; line-height: 1.2 !important; height: 75px !important;"></div>
+            <div id="month-zoukan"></div>
+        </td>
+        <td>
+            <div class="pillar-label">年</div>
+            <div id="year-eto" class="eto-grid" style="display: flex !important; flex-direction: column !important; align-items: center !important; font-size: 28px !important; font-weight: bold !important; line-height: 1.2 !important; height: 75px !important;"></div>
+            <div id="year-zoukan"></div>
+        </td>
+        
+        <td><div class="pillar-label">年干天中</div><div id="nenkan-tenchu-text" class="eto-text-small">--</div></td>
+    </tr>
+</table>
 
         <div id="shugoshin-result" style="margin: 20px 0; border: 0px solid #999; padding: 10px; display: none;">
             <div id="shugoshin-content" style="font-size: 16px; line-height: 1.6;"></div>

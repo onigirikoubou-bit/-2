@@ -146,9 +146,9 @@ function performCalculation() {
     const mShi = (2 + (sanmeiMonth + 10) % 12) % 12;
     const trueMonthEto = KAN[mOff] + SHI[mShi];
 
-document.getElementById('day-eto').innerHTML = dayEto.split('').join('<br>');
-document.getElementById('month-eto').innerHTML = trueMonthEto.split('').join('<br>');
-document.getElementById('year-eto').innerHTML = trueYearEto.split('').join('<br>');
+setEto('day-eto', dayEto);
+setEto('month-eto', trueMonthEto);
+setEto('year-eto', trueYearEto);
     
     // 年干天中
     const yearIndex = KANTO_LIST.indexOf(trueYearEto);
@@ -332,3 +332,22 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('day-input').value = today.getDate();
     document.getElementById('calc-btn').addEventListener('click', performCalculation);
 });
+
+function setEto(elementId, etoText) {
+    const container = document.getElementById(elementId);
+    if (!container) return;
+    
+    container.innerHTML = ''; // 中身をリセット
+    
+    // 干支（例：甲子）を1文字ずつspanで囲む
+    for (let char of etoText) {
+        let span = document.createElement('span');
+        span.innerText = char;
+        container.appendChild(span);
+    }
+}
+
+// 呼び出し（計算結果を表示する関数内）
+setEto('day-eto', dayEto);
+setEto('month-eto', trueMonthEto);
+setEto('year-eto', trueYearEto);
