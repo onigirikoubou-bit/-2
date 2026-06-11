@@ -14,42 +14,12 @@
         input[type="number"] { padding: 6px; width: 80px; font-size: 16px; font-family: inherit; }
         #calc-btn { padding: 10px 20px; font-size: 16px; cursor: pointer; background: #8a1414; color: #fff; border: none; border-radius: 4px; margin-top: 10px; margin-bottom: 30px; }
         
-        /* --- 命式テーブル専用：スマホ・PC共通で崩れない設定 --- */
-.meishiki-table { 
-    border-collapse: collapse; 
-    margin-bottom: 20px; 
-    width: 100%; /* 幅を広げる */
-}
-
-.meishiki-table td { 
-    vertical-align: top; 
-    padding: 0 5px; /* スマホ用に少し詰める */
-    border-right: 1px dashed #ccc; 
-    text-align: center; 
-    font-size: 14px; /* スマホで見やすいサイズへ微調整 */
-    
-    /* 縦書きの強制 */
-    writing-mode: vertical-rl;
-    -webkit-writing-mode: vertical-rl;
-    text-orientation: upright;
-    -webkit-text-orientation: upright;
-    
-    /* 高さを確保（これが縦書き崩れを防ぐ鍵） */
-    height: 160px; 
-}
-
-/* 命式内の文字設定（すべて縦書きを継承・強制） */
-.eto-text, .eto-text-small {
-    writing-mode: vertical-rl !important;
-    -webkit-writing-mode: vertical-rl !important;
-    text-orientation: upright !important;
-    -webkit-text-orientation: upright !important;
-    display: block !important;
-    margin: 2px 0;
-}
-
-.eto-text { font-size: 24px; font-weight: bold; }
-.eto-text-small { font-size: 18px; font-weight: bold; color: #555; }
+        .meishiki-table { border-collapse: collapse; margin-bottom: 20px; }
+        .meishiki-table td { vertical-align: top; padding: 0 15px; border-right: 1px dashed #ccc; text-align: center; font-size: 16px; }
+        .meishiki-table td:last-child { border-right: none; }
+        .pillar-label { font-size: 14px; font-weight: bold; margin-bottom: 5px; }
+        .eto-text { writing-mode: vertical-rl; text-orientation: upright; font-size: 28px; font-weight: bold; letter-spacing: 5px; line-height: 1.5; display: inline-block; }
+        .eto-text-small { writing-mode: vertical-rl; text-orientation: upright; font-size: 22px; font-weight: bold; letter-spacing: 5px; line-height: 1.5; display: inline-block; color: #555; }
         
         #body-map { border-collapse: collapse; margin-top: 20px; table-layout: fixed; }
         #body-map td { font-size: 24px !important; text-align: center; vertical-align: middle; padding: 20px; width: 60px; height: 60px; border: 1px solid #000; }
@@ -64,6 +34,14 @@
         .daiun-table { border-collapse: collapse; width: 100%; max-width: 500px; margin-top: 20px; }
         .daiun-table th, .daiun-table td { padding: 10px; border: 1px solid #ccc; text-align: center; font-family: "Yu Mincho", "游明朝", serif; }
         .daiun-table th { background-color: #f2f2f2; }
+
+        /* iPhone/Safari 専用の修正（他には影響しません） */
+@media screen and (-webkit-min-device-pixel-ratio: 0) {
+    .meishiki-table td {
+        display: inline-block;
+        height: 180px;
+    }
+}
 
     </style>
 </head>
