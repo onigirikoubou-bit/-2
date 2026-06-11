@@ -146,9 +146,9 @@ function performCalculation() {
     const mShi = (2 + (sanmeiMonth + 10) % 12) % 12;
     const trueMonthEto = KAN[mOff] + SHI[mShi];
 
-    document.getElementById('day-eto').innerText = dayEto;
-    document.getElementById('month-eto').innerText = trueMonthEto;
-    document.getElementById('year-eto').innerText = trueYearEto;
+document.getElementById('day-eto').innerHTML = dayEto.split('').join('<br>');
+document.getElementById('month-eto').innerHTML = trueMonthEto.split('').join('<br>');
+document.getElementById('year-eto').innerHTML = trueYearEto.split('').join('<br>');
     
     // 年干天中
     const yearIndex = KANTO_LIST.indexOf(trueYearEto);
