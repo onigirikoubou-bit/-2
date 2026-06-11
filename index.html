@@ -35,6 +35,21 @@
         .daiun-table th, .daiun-table td { padding: 10px; border: 1px solid #ccc; text-align: center; font-family: "Yu Mincho", "游明朝", serif; }
         .daiun-table th { background-color: #f2f2f2; }
 
+        /* iPhoneのみ：縦書きを諦め、重なりを防ぐ「整列横書き」モードへ */
+@supports (-webkit-touch-callout: none) {
+    .meishiki-table td {
+        /* 縦書きの強制を解除 */
+        writing-mode: horizontal-tb !important;
+        -webkit-writing-mode: horizontal-tb !important;
+        
+        /* 縦書き崩れによる重なりを防ぐため、高さを自動にする */
+        height: auto !important;
+        display: table-cell !important;
+        
+        /* 文字が重ならないよう行間を確保 */
+        line-height: 2.0 !important;
+        padding-bottom: 20px !important;
+    }
 
     .eto-text, .eto-text-small {
         /* 横書きとして整列させる */
