@@ -120,7 +120,7 @@ function renderDaiunTable(startAge, baseEto, isForward, nikkan) {
 // 3. メイン計算ロジック（中央揃え・複数蔵干出力版）
 // ==========================================
 function performCalculation() {
-    const y = parseInt(document.getElementById('year-input').value, 10);
+const y = parseInt(document.getElementById('year-input').value, 10);
     const m = parseInt(document.getElementById('month-input').value, 10);
     const d = parseInt(document.getElementById('day-input').value, 10);
 
@@ -131,30 +131,32 @@ function performCalculation() {
     let dayIndex = (diffDays + 43) % 60;
     if (dayIndex < 0) dayIndex += 60;
     const dayEto = KANTO_LIST[dayIndex];
-
-    document.getElementById('tenchusatsu-text').innerText = calcTenchusatsu(dayIndex);
-
+   
+    // 1. まず節入り日のリストと、現在の月の節入り日を取得
     const setsuiriDays = (window.SETSUIRI_DATA && window.SETSUIRI_DATA[y]) ? window.SETSUIRI_DATA[y] : [5,4,5,5,5,6,7,7,8,8,7,7];
-    const currentSetsuiri = setsuiriDays[m - 1];
+    const currentSetsuiri = setsuiriDays[m - 1]; // ここで定義！
 
-    let sanmeiMonth = (d < setsuiriDays[m-1]) ? ((m === 1) ? 12 : m - 1) : m;
-    let sanmeiYear = (m === 1 || (m === 2 && d < setsuiriDays[1])) ? y - 1 : y;
-
+    // 2. 定義した currentSetsuiri を使って判定する
+    let sanmeiMonth = (d < currentSetsuiri) ? ((m === 1) ? 12 : m - 1) : m;
+    let sanmeiYear = (m === 1 || (m === 2 && d < currentSetsuiri)) ? y - 1 : y;
     const yOff = (sanmeiYear - 4) % 60;
     const trueYearEto = KAN[yOff % 10] + SHI[yOff % 12];
     const mOff = (((sanmeiYear - 4) % 10 % 5) * 2 + 2 + (sanmeiMonth + 10) % 12) % 10;
     const mShi = (2 + (sanmeiMonth + 10) % 12) % 12;
     const trueMonthEto = KAN[mOff] + SHI[mShi];
 
-setEto('day-eto', dayEto);
-setEto('month-eto', trueMonthEto);
-setEto('year-eto', trueYearEto);
-    
-    // 年干天中
+        // 年干天中の計算
     const yearIndex = KANTO_LIST.indexOf(trueYearEto);
-    if (yearIndex !== -1) document.getElementById('nenkan-tenchu-text').innerText = calcTenchusatsu(yearIndex);
+    const nenkanTenchuText = (yearIndex !== -1) ? calcTenchusatsu(yearIndex) : "--";
 
-    // 基礎データの抽出
+    // --- ここで全ての表示をまとめて更新 ---
+    setEto('day-eto', dayEto);
+    setEto('month-eto', trueMonthEto);
+    setEto('year-eto', trueYearEto);
+    setEto('tenchusatsu-text', calcTenchusatsu(dayIndex));
+    setEto('nenkan-tenchu-text', nenkanTenchuText);
+    
+    // 基礎データの抽出は表示更新の後に行う
     const nikkan = dayEto[0], nishi = dayEto[1];
     const gesshi = trueMonthEto[1], nenshi = trueYearEto[1];
     const nenkan = trueYearEto[0], gekkan = trueMonthEto[0];
@@ -163,7 +165,6 @@ setEto('year-eto', trueYearEto);
     let baseSetsuiriYear = y;
     let baseSetsuiriMonth = m;
     
-    // もし誕生日がその月の節入り日より前なら、前月の節入り日を基準にする
     if (d < currentSetsuiri) {
         baseSetsuiriMonth = m - 1;
         if (baseSetsuiriMonth === 0) {
@@ -177,15 +178,14 @@ setEto('year-eto', trueYearEto);
         : [5,4,5,5,5,6,7,7,8,8,7,7];
     const baseSetsuiriDay = baseSetsuiriDays[baseSetsuiriMonth - 1];
     
-    // 正確な日付オブジェクトを作って引き算（これでマイナスを完全に防ぎます）
     const baseSetsuiriDate = new Date(baseSetsuiriYear, baseSetsuiriMonth - 1, baseSetsuiriDay, 12, 0, 0);
     const birthDate = new Date(y, m - 1, d, 12, 0, 0);
     const dayDiff = Math.round((birthDate.getTime() - baseSetsuiriDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
 
-    // 各柱の蔵干の割り出し（右手・左手・中央すべてを経過日数 dayDiff で変化させる）
-    const bValue = getZoukanByDay(nishi, dayDiff); // 右手
-    const fValue = getZoukanByDay(nenshi, dayDiff); // 左手
-    const iValue = getZoukanByDay(gesshi, dayDiff); // 中央
+    const bValue = getZoukanByDay(nishi, dayDiff);
+    const fValue = getZoukanByDay(nenshi, dayDiff);
+    const iValue = getZoukanByDay(gesshi, dayDiff);
+
     // ----------------------------------------------------
 
     const findJuni = (target) => window.JUNI_IMAGE_TABLE?.find(r => r[nikkan] === target)?.star || "--";
@@ -257,14 +257,15 @@ if (shugoshinArea && shugoshinContent && shugoInfo) {
         const res = evaluate(c);
         if (!res.match) return null;
         
-        // 実際に命式内にあった干(res.found)を表示に使用する
         const displayGod = res.found; 
         const isDiff = (c !== res.found); // 本来と違う干が見つかったか
         
-        return `${displayGod}(第${idx + 1 + rankOffset})${(isShugo && isDiff) ? '※' : ''}`;
+        // 守護神は干(displayGod)、忌神は元の文字(c)を表示
+        const text = isShugo ? displayGod : c;
+        return `${text}${(isShugo && isDiff) ? '※' : ''}`;
     }).filter(Boolean);
 
-    // ※rankOffsetを追加して「第1」「第2」が通し番号になるように調整
+    // 呼び出し
     const sResults = check([shugoInfo.p1, shugoInfo.p2, shugoInfo.p3], true, 0);
     const iResults = check([shugoInfo.i1, shugoInfo.i2], false, 0);
 
@@ -277,7 +278,6 @@ if (shugoshinArea && shugoshinContent && shugoInfo) {
         命式内忌神：${iResults.length > 0 ? iResults.join('、') : 'なし'}
         </div>`;
     shugoshinArea.style.display = 'block';
-}
 
     // 大運計算
     const isMale = document.getElementById('male')?.checked || false;
@@ -321,15 +321,16 @@ if (shugoshinArea && shugoshinContent && shugoInfo) {
     renderDaiunTable(daiunNen, KANTO_LIST[(KANTO_LIST.indexOf(trueMonthEto) + (isForward ? 1 : -1) + 60) % 60], isForward, nikkan);
     document.getElementById('result-area').style.display = 'block';
 }
+}
 
 // ==========================================
 // 4. 初期化イベント
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
-    const today = new Date();
-    document.getElementById('year-input').value = today.getFullYear();
-    document.getElementById('month-input').value = today.getMonth() + 1;
-    document.getElementById('day-input').value = today.getDate();
+    // デフォルト値を 1990/1/1 に設定
+    document.getElementById('year-input').value = 1990;
+    document.getElementById('month-input').value = 1;
+    document.getElementById('day-input').value = 1;
     document.getElementById('calc-btn').addEventListener('click', performCalculation);
 });
 
@@ -337,17 +338,10 @@ function setEto(elementId, etoText) {
     const container = document.getElementById(elementId);
     if (!container) return;
     
-    container.innerHTML = ''; // 中身をリセット
-    
-    // 干支（例：甲子）を1文字ずつspanで囲む
+    container.innerHTML = ''; 
     for (let char of etoText) {
         let span = document.createElement('span');
         span.innerText = char;
         container.appendChild(span);
     }
 }
-
-// 呼び出し（計算結果を表示する関数内）
-setEto('day-eto', dayEto);
-setEto('month-eto', trueMonthEto);
-setEto('year-eto', trueYearEto);
