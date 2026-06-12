@@ -55,24 +55,36 @@ function getZoukanByDay(shi, day) {
 
 function calcMiKyoMiJakuFull(nikkan, nenshi, gesshi, nishi, stars) {
     // --- 1. 星の分類とカウント ---
-    const specialStars = ["天禄星", "天南星", "天将星"];
-    const weakStars = ["天報星", "天印星", "天庫星"]; // 身弱の星の定義例
+    const strongStars = ["天禄", "天南", "天将", "天禄星", "天南星", "天将星"];
+    const weakStars = ["天報", "天印", "天極", "天馳", "天胡", "天報星", "天印星", "天庫星"];
     
-    const strongStarCount = stars.filter(star => specialStars.includes(star)).length;
-    const weakStarCount = stars.filter(star => weakStars.includes(star)).length;
+    // stars は主星（3つ）の配列である前提
+    const strongStarCount = stars.filter(s => strongStars.includes(s)).length;
+    const weakStarCount = stars.filter(s => weakStars.includes(s)).length;
 
     // --- 2. 優先判定ロジック ---
-    // 最身強判定
+    // 1. 身強判定（身強星が1つ以上あれば身強、2つ以上で最身強）
     if (strongStarCount >= 2) return "最身強";
+    if (strongStarCount >= 1) return "身強";
     
-    // 最身弱判定（全てが身弱の星の場合）
-    // stars.length は通常3ですが、万が一のために全星数と比較
+    // 2. 身弱判定（身強星が0個であることが前提）
+    // 全てが身弱の星ならば最身弱
     if (weakStarCount === stars.length) return "最身弱";
+    // 身弱の星が2つ以上あれば身弱
+    if (weakStarCount >= 2) return "身弱";
 
-    // --- 3. 従来のスコア計算 ---
+    // --- 3. 従来のスコア計算（優先判定に該当しなかった場合） ---
     const scoreMap = {
         '甲': {'寅':3, '卯':3, '亥':2, '辰':1, '未':1, '子':1},
-        // ... (以下略)
+        '乙': {'卯':3, '寅':3, '亥':2, '未':1, '辰':1, '子':1},
+        '丙': {'巳':3, '午':3, '寅':2, '戌':1, '未':1, '卯':1},
+        '丁': {'午':3, '巳':3, '寅':2, '未':1, '戌':1, '卯':1},
+        '戊': {'辰':3, '戌':3, '丑':3, '未':3, '巳':2, '午':2},
+        '己': {'丑':3, '未':3, '辰':3, '戌':3, '巳':2, '午':2},
+        '庚': {'申':3, '酉':3, '巳':2, '丑':1, '辰':1, '戌':1},
+        '辛': {'酉':3, '申':3, '巳':2, '丑':1, '辰':1, '戌':1},
+        '壬': {'亥':3, '子':3, '申':2, '辰':1, '丑':1, '酉':1},
+        '癸': {'子':3, '亥':3, '申':2, '辰':1, '丑':1, '酉':1}
     };
     
     let score = 0;
@@ -82,10 +94,7 @@ function calcMiKyoMiJakuFull(nikkan, nenshi, gesshi, nishi, stars) {
         score += (scoreMap[nikkan][nenshi] || 0);
     }
 
-    // --- 4. スコアと星の組み合わせ判定 ---
-    // 身弱が2つ以上ある場合の判定を追加
-    if (weakStarCount >= 2) return "身弱";
-    
+    // --- 4. スコアによる最終判定 ---
     if (score >= 7) return "身強";
     if (score >= 4) return "身中";
     return "身弱";
