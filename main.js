@@ -120,7 +120,7 @@ function renderDaiunTable(startAge, baseEto, isForward, nikkan) {
 // 3. メイン計算ロジック（中央揃え・複数蔵干出力版）
 // ==========================================
 function performCalculation() {
-const y = parseInt(document.getElementById('year-input').value, 10);
+    const y = parseInt(document.getElementById('year-input').value, 10);
     const m = parseInt(document.getElementById('month-input').value, 10);
     const d = parseInt(document.getElementById('day-input').value, 10);
 
@@ -131,6 +131,14 @@ const y = parseInt(document.getElementById('year-input').value, 10);
     let dayIndex = (diffDays + 43) % 60;
     if (dayIndex < 0) dayIndex += 60;
     const dayEto = KANTO_LIST[dayIndex];
+
+    // --- 年齢計算の追加 ---
+    const today = new Date(2026, 5, 12); // 現在の日付
+    let age = today.getFullYear() - y;
+    const mDiff = (today.getMonth() + 1) - m;
+    if (mDiff < 0 || (mDiff === 0 && today.getDate() < d)) {
+        age--;
+    }
    
     // 1. まず節入り日のリストと、現在の月の節入り日を取得
     const setsuiriDays = (window.SETSUIRI_DATA && window.SETSUIRI_DATA[y]) ? window.SETSUIRI_DATA[y] : [5,4,5,5,5,6,7,7,8,8,7,7];
@@ -226,6 +234,8 @@ for (const [id, val] of Object.entries(map)) {
     document.getElementById('day-zoukan').innerHTML = (ZOUKAN_ALL_MAP[nishi] || []).join('<br>');
     document.getElementById('month-zoukan').innerHTML = (ZOUKAN_ALL_MAP[gesshi] || []).join('<br>');
     document.getElementById('year-zoukan').innerHTML = (ZOUKAN_ALL_MAP[nenshi] || []).join('<br>');
+    // 年齢を画面に表示
+    document.getElementById('age-display').innerText = age + "歳";
 
     // 守護神判定ロジック
 const shugoshinArea = document.getElementById('shugoshin-result');
