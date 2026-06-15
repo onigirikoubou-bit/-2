@@ -20,6 +20,63 @@ const ZOUKAN_ALL_MAP = {
     '申': ['戊','壬','庚'], '酉': ['辛'], '戌': ['辛','丁','戊'], '亥': ['甲','壬']
 };
 
+// main.js の一番上のほうに書いてください
+let sharedData = {
+    y: "", m: "", d: "", comment: ""
+};
+
+// --- この関数を main.js に追加してください ---
+async function performCopy(fullResult, title) {
+    try {
+        // クリップボードへのコピー処理
+        await navigator.clipboard.writeText(fullResult);
+        console.log("コピー成功:", title);
+        alert("結果をクリップボードにコピーしました！");
+    } catch (e) {
+        console.error("コピー失敗:", e);
+        alert("コピーに失敗しました。");
+    }
+}
+// ==========================================
+// 3. 履歴管理モジュール (HistoryModule)
+// ==========================================
+const HistoryModule = {
+    // データを保存して、すぐに画面を更新する
+    save: (date, comment) => {
+        let history = JSON.parse(localStorage.getItem('searchHistory') || '[]');
+        history.unshift({ date, comment, timestamp: Date.now() });
+        history = history.slice(0, 3); // 最新3件だけ残す
+        localStorage.setItem('searchHistory', JSON.stringify(history));
+        
+    },
+    
+    // 画面に表示する
+    render: () => {
+        const list = document.getElementById('history-list');
+        if (!list) return;
+
+        const data = localStorage.getItem('searchHistory');
+        const history = data ? JSON.parse(data) : [];
+        
+        list.innerHTML = history.map(h => {
+            const commentPart = (h.comment && h.comment.trim() !== "") ? ` - ${h.comment}` : "";
+            return `<div class="history-item"><strong>${h.date}</strong>${commentPart}</div>`;
+        }).join('');
+    }
+};
+
+function setEto(elementId, etoText) {
+    const container = document.getElementById(elementId);
+    if (!container) return;
+    
+    container.innerHTML = ''; 
+    for (let char of etoText) {
+        let span = document.createElement('span');
+        span.innerText = char;
+        container.appendChild(span);
+    }
+}
+
 // ==========================================
 // 2. 補助計算関数
 // ==========================================
@@ -125,6 +182,7 @@ function renderDaiunTable(startAge, baseEto, isForward, nikkan) {
     }
 }
 
+
 // ==========================================
 // 3. メイン計算ロジック（中央揃え・複数蔵干出力版）
 // ==========================================
@@ -132,6 +190,7 @@ function performCalculation() {
     const y = parseInt(document.getElementById('year-input').value, 10);
     const m = parseInt(document.getElementById('month-input').value, 10);
     const d = parseInt(document.getElementById('day-input').value, 10);
+    const commentInput = document.getElementById('comment-input').value;
 
     const targetDate = new Date(y, m - 1, d, 12, 0, 0);
     const baseDate = new Date(2026, 5, 2, 12, 0, 0);
@@ -141,8 +200,8 @@ function performCalculation() {
     if (dayIndex < 0) dayIndex += 60;
     const dayEto = KANTO_LIST[dayIndex];
 
-    // --- 年齢計算の追加 ---
-    const today = new Date(2026, 5, 12); // 現在の日付
+    // --- 年齢計算の修正版 ---
+    const today = new Date(); // これだけで「今日の日付」が自動取得されます
     let age = today.getFullYear() - y;
     const mDiff = (today.getMonth() + 1) - m;
     if (mDiff < 0 || (mDiff === 0 && today.getDate() < d)) {
@@ -342,25 +401,189 @@ if (shugoshinArea && shugoshinContent && shugoInfo) {
 }
 }
 
+// --- 【新機能の統合】 ---
+    // const を消して、既存の値を再利用します
+    let comment = document.getElementById('comment-input').value;
+    const result = document.getElementById('pos-a').innerText;
+    const daiun = document.getElementById('daiun-table-body').innerText;
+
+    // ※ y, m, d は関数の最初で定義したものをそのまま使います
+
+    // 共有ボタンのイベント設定
+    document.getElementById('share-or-copy-btn').onclick = async () => {
+    const result = document.getElementById('pos-a').innerText;
+    // ここでさっきの sharedData を使う！
+    const text = `【${sharedData.comment}】\n日時: ${sharedData.y}/${sharedData.m}/${sharedData.d}\n結果: ${result}`;
+        await performCopy(fullResult, title);
+    };
+
+// 1. ボタンを表示する
+const shareBtn = document.getElementById('share-or-copy-btn');
+if (shareBtn) {
+    shareBtn.style.display = 'inline-block';
+
+    shareBtn.onclick = async () => {
+    // 1. 必要なデータを全部この関数の中で揃える
+    const y = document.getElementById('year-input').value;
+    const m = document.getElementById('month-input').value;
+    const d = document.getElementById('day-input').value;
+    const commentVal = document.getElementById('comment-input').value || "";
+    
+    const result = document.getElementById('pos-a').innerText;
+    const daiun = document.getElementById('daiun-table-body').innerText;
+    
+    // 2. コピー用のテキスト（fullResult）とタイトル（title）をここで作る
+    const fullResult = `【${commentVal}】\n日時: ${y}/${m}/${d}\n結果: ${result}\n\n[大運表]\n${daiun}`;
+    const title = commentVal;
+    
+    // 3. 完成した変数を関数に渡す
+    await performCopy(fullResult, title);
+    console.log("コピー成功！");
+};
+    
+// 2. 履歴保存を実行
+    try {
+        const y = document.getElementById('year-input')?.value || "0000";
+        const m = document.getElementById('month-input')?.value || "00";
+        const d = document.getElementById('day-input')?.value || "00";
+        
+        const commentInput = document.getElementById('comment-input')?.value;
+        const title = (commentInput && commentInput.trim() !== "") ? commentInput.trim() : "";
+        // 【追加】ここで本当にコメントが取れているか確認！
+console.log("保存しようとしているタイトル:", title); 
+
+        // 履歴保存と反映をセットで実行
+        if (typeof HistoryModule !== 'undefined') {
+            HistoryModule.save(`${y}/${m}/${d}`, title);
+            HistoryModule.render(); 
+        } else {
+            console.error("HistoryModuleが見つかりません");
+        }
+    } catch (e) {
+        console.error("履歴保存中にエラーが発生しました:", e);
+    }
+}
+// const を let に変更する
+let y = document.getElementById('year-input').value;
+let m = document.getElementById('month-input').value;
+let d = document.getElementById('day-input').value;
+comment = document.getElementById('comment-input').value;
+
+HistoryModule.save(`${y}/${m}/${d}`, comment);
+HistoryModule.render();
+
 // ==========================================
-// 4. 初期化イベント
+// 4. 初期化イベント (全てここに統合)
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
-    // デフォルト値を 1990/1/1 に設定
-    document.getElementById('year-input').value = 1990;
-    document.getElementById('month-input').value = 1;
-    document.getElementById('day-input').value = 1;
-    document.getElementById('calc-btn').addEventListener('click', performCalculation);
+    
+    // --- 1. 計算ボタンのイベント一本化 ---
+    const calcBtn = document.getElementById('calc-btn');
+    if (calcBtn) {
+        // 古いイベントを確実に消すために複製して置換
+        const newCalcBtn = calcBtn.cloneNode(true);
+        calcBtn.parentNode.replaceChild(newCalcBtn, calcBtn);
+
+        newCalcBtn.addEventListener('click', () => {
+            performCalculation(); // 計算
+
+            const y = document.getElementById('year-input')?.value || "0000";
+            const m = document.getElementById('month-input')?.value || "00";
+            const d = document.getElementById('day-input')?.value || "00";
+            const comment = document.getElementById('comment-input')?.value || "";
+
+            HistoryModule.save(`${y}/${m}/${d}`, comment); // 保存
+            HistoryModule.render(); // 表示更新
+            console.log("計算完了: 履歴を1行だけ保存しました");
+        });
+    }
+
+    // --- 2. 保存ボタンのイベント登録 ---
+    const saveBtn = document.getElementById('share-or-copy-btn');
+    if (saveBtn) {
+        saveBtn.setAttribute('onclick', ''); 
+        saveBtn.removeEventListener('click', saveResultHandler);
+        saveBtn.addEventListener('click', saveResultHandler);
+        saveBtn.style.display = 'block';
+        console.log("画像保存ボタンを設定しました");
+    }
+
+    // --- 3. ページ初回読み込み時の履歴表示 ---
+    HistoryModule.render();
+    console.log("初期履歴を表示しました");
 });
 
-function setEto(elementId, etoText) {
-    const container = document.getElementById(elementId);
-    if (!container) return;
+// --- saveResultHandler 関数はここより下（DOMContentLoadedの外）に定義してください ---
+async function saveResultHandler() {
+    const originalArea = document.getElementById('result-area');
+    if (!originalArea) return;
+
+    // 1. 隠しコンテナ (幅580px固定)
+    const container = document.createElement('div');
+    container.style.cssText = "position:absolute; left:-9999px; top:0; width:580px; background:#fcfbf9; padding:20px; display:block; box-sizing:border-box;";
+    document.body.appendChild(container);
+
+    // 2. タイトルとコメントの取得＆日付フォーマット加工
+    const historyList = document.getElementById('history-list');
+    let displayTitle = historyList?.innerText ? historyList.innerText.split('\n')[0].trim() : "算命学・命式算出";
     
-    container.innerHTML = ''; 
-    for (let char of etoText) {
-        let span = document.createElement('span');
-        span.innerText = char;
-        container.appendChild(span);
+    // タイトルの日付部分（例: 1988/6/3-）を探して「生」を付ける
+    // 日付-見出しの形式と仮定して、'-' の直前に「生」を挿入
+    if (displayTitle.includes('/')) {
+        displayTitle = displayTitle.replace('-', '生-');
+    }
+    
+    // 3. データ取得
+    const genderVal = document.querySelector('input[name="gender"]:checked')?.value;
+    const gender = genderVal === 'male' ? '男性' : (genderVal === 'female' ? '女性' : '不明');
+    const age = document.getElementById('age-display')?.innerText || "0歳";
+    
+    // 4. ヘッダー組み立て（誕生日行を廃止し、2行に集約）
+    const infoHeader = document.createElement('div');
+    infoHeader.style.cssText = "margin-bottom:20px; border-bottom:2px solid #333; padding-bottom:10px;";
+    infoHeader.innerHTML = `
+        <div style="font-weight:bold; font-size:22px; margin-bottom:10px;">${displayTitle}</div>
+        <div style="display:flex; justify-content:space-between; align-items:center; font-size:15px; font-weight:bold;">
+            <div style="flex-grow:1;">性別: ${gender} / 年齢: ${age}</div>
+            <div style="white-space:nowrap; flex-shrink:0; margin-left:10px; font-size:13px;">作成日: ${new Date().toLocaleDateString()}</div>
+        </div>
+    `;
+    container.appendChild(infoHeader);
+
+    // 5. 各パーツの追加
+    const parts = [
+        originalArea.querySelector('.main-area'),
+        document.getElementById('shugoshin-result'),
+        document.getElementById('body-map'),
+        document.querySelector('.side-area')
+    ];
+
+    parts.forEach(part => {
+        if (part) {
+            const clone = part.cloneNode(true);
+            const titleEl = clone.querySelector('#display-title');
+            if (titleEl) titleEl.style.display = 'none'; // 重複タイトルを隠す
+            clone.style.display = 'block';
+            clone.style.marginBottom = '20px';
+            container.appendChild(clone);
+        }
+    });
+
+    // 6. 画像生成
+    try {
+        const canvas = await html2canvas(container, {
+            scale: 2,
+            width: 580,
+            backgroundColor: "#fcfbf9"
+        });
+
+        canvas.toBlob(blob => {
+            navigator.clipboard.write([new ClipboardItem({"image/png": blob})]);
+            alert("画像コピー完了！");
+        });
+    } catch (e) {
+        console.error("生成失敗:", e);
+    } finally {
+        document.body.removeChild(container);
     }
 }
