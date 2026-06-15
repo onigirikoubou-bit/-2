@@ -569,18 +569,22 @@ async function saveResultHandler() {
         }
     });
 
-    // 6. 画像生成
+    // 6. 画像生成 (JPEG形式に変更)
     try {
         const canvas = await html2canvas(container, {
             scale: 2,
             width: 580,
-            backgroundColor: "#fcfbf9"
+            backgroundColor: "#fcfbf9" // JPEGの背景色を指定
         });
 
+        // canvas.toBlob の第2引数で image/jpeg を指定
         canvas.toBlob(blob => {
-            navigator.clipboard.write([new ClipboardItem({"image/png": blob})]);
-            alert("画像コピー完了！");
-        });
+            const file = new File([blob], "result.jpg", { type: "image/jpeg" });
+            
+            // クリップボード書き込み（iOS/Androidで動作が異なる場合があるため注意）
+            navigator.clipboard.write([new ClipboardItem({"image/jpeg": blob})]);
+            alert("画像(JPG)をコピーしました！");
+        }, "image/jpeg", 0.9); // 第3引数は画質（0.9は90%の品質）
     } catch (e) {
         console.error("生成失敗:", e);
     } finally {
