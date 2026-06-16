@@ -569,22 +569,52 @@ async function saveResultHandler() {
         }
     });
 
-    // 6. 画像生成 (JPEG形式に変更)
+    // 6. 画像生成 (JPEG形式でダウンロード)
     try {
         const canvas = await html2canvas(container, {
             scale: 2,
             width: 580,
-            backgroundColor: "#fcfbf9" // JPEGの背景色を指定
+            backgroundColor: "#fcfbf9"
         });
 
-        // canvas.toBlob の第2引数で image/jpeg を指定
         canvas.toBlob(blob => {
-            const file = new File([blob], "result.jpg", { type: "image/jpeg" });
+            if (!blob) return;
+
+            // --- ファイル名の生成ロジック ---
+            const historyList = document.getElementById('history-list');
+            const rawComment = historyList ? historyList.innerText.trim() : "";
+            const firstLine = rawComment.split('\n')[0].trim();
             
-            // クリップボード書き込み（iOS/Androidで動作が異なる場合があるため注意）
-            navigator.clipboard.write([new ClipboardItem({"image/jpeg": blob})]);
-            alert("画像(JPG)をコピーしました！");
-        }, "image/jpeg", 0.9); // 第3引数は画質（0.9は90%の品質）
+            let fileName = "";
+            
+            if (firstLine && firstLine.length > 0) {
+                // 1. コメントがある場合：
+                // 「1989/3/31 - コメントテスト」などの形式を想定
+                // 「/」はファイル名に使えないため「_」に置換し、6文字切り出し
+                const cleanComment = firstLine.replace(/\//g, '_').replace(/-/g, '_');
+                fileName = cleanComment.substring(0, 6);
+            } else {
+                // 2. コメントがない場合：
+                const y = document.getElementById('year-input')?.value || "0000";
+                const m = document.getElementById('month-input')?.value || "0";
+                const d = document.getElementById('day-input')?.value || "0";
+                fileName = `鑑定${y}_${m}_${d}`;
+            }
+            // ---------------------------
+
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `${fileName}.jpg`; // ここにファイル名を指定
+            
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            alert(`${fileName}.jpg をダウンロードしました！`);
+        }, "image/jpeg", 0.9);
+
     } catch (e) {
         console.error("生成失敗:", e);
     } finally {
