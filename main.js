@@ -612,7 +612,7 @@ async function saveResultHandler() {
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
             
-            alert(`${fileName}.jpg をダウンロードしました！`);
+            //alert(`${fileName}.jpg をダウンロードしました！`);
         }, "image/jpeg", 0.9);
 
     } catch (e) {
