@@ -25,31 +25,42 @@ let sharedData = {
     y: "", m: "", d: "", comment: ""
 };
 
-// --- この関数を main.js に追加してください ---
-async function performCopy(fullResult, title) {
-    try {
-        // クリップボードへのコピー処理
-        await navigator.clipboard.writeText(fullResult);
-        console.log("コピー成功:", title);
-        alert("結果をクリップボードにコピーしました！");
-    } catch (e) {
-        console.error("コピー失敗:", e);
-        alert("コピーに失敗しました。");
-    }
+function updateHistoryUI() {
+    const listEl = document.getElementById('history-list');
+    listEl.innerHTML = ''; 
+
+    appHistory.forEach((data, index) => {
+        const div = document.createElement('div');
+        // ラジオボタンに index を持たせる
+        div.innerHTML = `
+            <input type="radio" name="history-radio" value="${index}" id="h${index}">
+            <label for="h${index}">${data.y}年${data.m}月${data.d}日 (${data.gender === 'male' ? '男性' : '女性'})</label>
+        `;
+        listEl.appendChild(div);
+    });
 }
+
+// main.js の一番上に配置
+const isValidDate = (year, month, day) => {
+    const date = new Date(year, month - 1, day);
+    return date.getFullYear() === parseInt(year) &&
+           date.getMonth() === parseInt(month) - 1 &&
+           date.getDate() === parseInt(day);
+};
+
 // ==========================================
 // 3. 履歴管理モジュール (HistoryModule)
 // ==========================================
 const HistoryModule = {
-    // データを保存して、すぐに画面を更新する
+    // データを保存して画面更新
     save: (date, comment) => {
         let history = JSON.parse(localStorage.getItem('searchHistory') || '[]');
         history.unshift({ date, comment, timestamp: Date.now() });
-        history = history.slice(0, 3); // 最新3件だけ残す
+        history = history.slice(0, 5);
         localStorage.setItem('searchHistory', JSON.stringify(history));
-        
+        HistoryModule.render();
     },
-    
+
     // 画面に表示する
     render: () => {
         const list = document.getElementById('history-list');
@@ -57,13 +68,55 @@ const HistoryModule = {
 
         const data = localStorage.getItem('searchHistory');
         const history = data ? JSON.parse(data) : [];
-        
-        list.innerHTML = history.map(h => {
+
+        list.innerHTML = history.map((h, index) => {
             const commentPart = (h.comment && h.comment.trim() !== "") ? ` - ${h.comment}` : "";
-            return `<div class="history-item"><strong>${h.date}</strong>${commentPart}</div>`;
+            return `
+                <div class="history-item" style="display: flex; align-items: center; margin-bottom: 5px; width: 100%;">
+                    <input type="radio" name="history-radio" value="${index}" id="h${index}">
+                    <label for="h${index}" style="margin-left: 8px; flex-grow: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                        <strong>${h.date}</strong>
+                        <span style="display: inline-block; max-width: 400px; overflow: hidden; text-overflow: ellipsis; vertical-align: bottom;">
+                            ${commentPart}
+                        </span>
+                    </label>
+                </div>`;
         }).join('');
+    },
+
+    // 取込処理 (ボタンから直接呼び出す)
+    importSelected: () => {
+        const selected = document.querySelector('input[name="history-radio"]:checked');
+        if (!selected) {
+            alert("履歴を選択してください");
+            return;
+        }
+
+        const data = localStorage.getItem('searchHistory');
+        const history = data ? JSON.parse(data) : [];
+        const h = history[selected.value];
+
+        // 日付解析
+        const matches = h.date.match(/(\d+)\/(\d+)\/(\d+)/);
+        if (matches) {
+            document.getElementById('year-input').value = matches[1];
+            document.getElementById('month-input').value = matches[2];
+            document.getElementById('day-input').value = matches[3];
+            
+            // コメント反映
+            const commentInput = document.getElementById('comment-input');
+            if (commentInput) {
+                commentInput.value = h.comment || "";
+            }
+
+            if (typeof performCalculation === 'function') {
+                performCalculation();
+            }
+        }
     }
-};
+}; // ← これが唯一の締めくくりです。これより下に「initImportButton」などは置かないでください。
+
+
 
 function setEto(elementId, etoText) {
     const container = document.getElementById(elementId);
@@ -182,7 +235,6 @@ function renderDaiunTable(startAge, baseEto, isForward, nikkan) {
     }
 }
 
-
 // ==========================================
 // 3. メイン計算ロジック（中央揃え・複数蔵干出力版）
 // ==========================================
@@ -192,6 +244,11 @@ function performCalculation() {
     const d = parseInt(document.getElementById('day-input').value, 10);
     const commentInput = document.getElementById('comment-input').value;
 
+    if (!isValidDate(y, m, d)) {
+        alert("存在しない日付です。正しい日付を入力してください。");
+        return; // 計算処理を中断
+    }
+    
     const targetDate = new Date(y, m - 1, d, 12, 0, 0);
     const baseDate = new Date(2026, 5, 2, 12, 0, 0);
     const diffDays = Math.round((targetDate.getTime() - baseDate.getTime()) / (1000 * 60 * 60 * 24));
@@ -207,6 +264,7 @@ function performCalculation() {
     if (mDiff < 0 || (mDiff === 0 && today.getDate() < d)) {
         age--;
     }
+    
    
     // 1. まず節入り日のリストと、現在の月の節入り日を取得
     const setsuiriDays = (window.SETSUIRI_DATA && window.SETSUIRI_DATA[y]) ? window.SETSUIRI_DATA[y] : [5,4,5,5,5,6,7,7,8,8,7,7];
@@ -620,4 +678,4 @@ async function saveResultHandler() {
     } finally {
         document.body.removeChild(container);
     }
-}
+    }
