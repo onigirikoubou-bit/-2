@@ -447,13 +447,22 @@ if (shugoshinArea && shugoshinContent && shugoInfo) {
         }
     }
 
-    // タイムスタンプの差から日数を算出
+    // --- 修正後の計算ロジック ---
+    
+    // 1. 日数計算（ミリ秒から整数にするため Math.floor を使用）
     const diffTime = Math.abs(targetSetsuiriDate - daiunBirthDate);
-    const kiunDays = Math.round(diffTime / (1000 * 60 * 60 * 24)) + 1;
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    
+    // 2. 流派のルールに基づき日数を確定
+    // 「+ 1」は節入り日当日を含めるための調整として維持
+    const kiunDays = diffDays + 1;
+    
+    // 3. 歳運数を算出（小数点以下を繰り上げる Math.ceil）
+    const daiunNen = Math.max(0, Math.ceil(kiunDays / 3));
 
-    // 大運の年数を算出
-    const daiunNen = Math.max(0, Math.round(kiunDays / 3));
+    console.log("計算デバッグ:", { kiunDays, daiunNen }); // コンソールで値を確認できます
 
+    // 4. 結果の出力
     renderDaiunTable(daiunNen, KANTO_LIST[(KANTO_LIST.indexOf(trueMonthEto) + (isForward ? 1 : -1) + 60) % 60], isForward, nikkan);
     document.getElementById('result-area').style.display = 'block';
 }
