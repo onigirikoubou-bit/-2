@@ -474,8 +474,6 @@ if (shugoshinArea && shugoshinContent && shugoInfo) {
     const result = document.getElementById('pos-a').innerText;
     const daiun = document.getElementById('daiun-table-body').innerText;
 
-    // ※ y, m, d は関数の最初で定義したものをそのまま使います
-
     // 共有ボタンのイベント設定
     document.getElementById('share-or-copy-btn').onclick = async () => {
     const result = document.getElementById('pos-a').innerText;
@@ -572,12 +570,10 @@ document.addEventListener('DOMContentLoaded', () => {
         saveBtn.removeEventListener('click', saveResultHandler);
         saveBtn.addEventListener('click', saveResultHandler);
         saveBtn.style.display = 'block';
-        console.log("画像保存ボタンを設定しました");
     }
 
     // --- 3. ページ初回読み込み時の履歴表示 ---
     HistoryModule.render();
-    console.log("初期履歴を表示しました");
 });
 
 // --- saveResultHandler 関数はここより下（DOMContentLoadedの外）に定義してください ---
@@ -590,14 +586,18 @@ async function saveResultHandler() {
     container.style.cssText = "position:absolute; left:-9999px; top:0; width:580px; background:#fcfbf9; padding:20px; display:block; box-sizing:border-box;";
     document.body.appendChild(container);
 
-    // 2. タイトルとコメントの取得＆日付フォーマット加工
-    const historyList = document.getElementById('history-list');
-    let displayTitle = historyList?.innerText ? historyList.innerText.split('\n')[0].trim() : "算命学・命式算出";
+    // 2. 入力欄から直接、誕生日とコメントを取得する
+    const y = document.getElementById('year-input').value;
+    const m = document.getElementById('month-input').value;
+    const d = document.getElementById('day-input').value;
+    const comment = document.getElementById('comment-input').value;
+
+    // 誕生日をフォーマット（例: 1988/6/3生）
+    let displayTitle = `${y}/${m}/${d}生`;
     
-    // タイトルの日付部分（例: 1988/6/3-）を探して「生」を付ける
-    // 日付-見出しの形式と仮定して、'-' の直前に「生」を挿入
-    if (displayTitle.includes('/')) {
-        displayTitle = displayTitle.replace('-', '生-');
+    // コメントがある場合はタイトルに付け加える（適宜調整してください）
+    if (comment && comment.trim() !== "") {
+        displayTitle += ` (${comment})`;
     }
     
     // 3. データ取得
@@ -648,24 +648,22 @@ async function saveResultHandler() {
             if (!blob) return;
 
             // --- ファイル名の生成ロジック ---
-            const historyList = document.getElementById('history-list');
-            const rawComment = historyList ? historyList.innerText.trim() : "";
-            const firstLine = rawComment.split('\n')[0].trim();
-            
+            // 入力欄から現在の値を直接取得
+            const y = document.getElementById('year-input')?.value || "0000";
+            const m = document.getElementById('month-input')?.value || "0";
+            const d = document.getElementById('day-input')?.value || "0";
+            const comment = document.getElementById('comment-input')?.value || "";
+
             let fileName = "";
-            
-            if (firstLine && firstLine.length > 0) {
-                // 1. コメントがある場合：
-                // 「1989/3/31 - コメントテスト」などの形式を想定
-                // 「/」はファイル名に使えないため「_」に置換し、6文字切り出し
-                const cleanComment = firstLine.replace(/\//g, '_').replace(/-/g, '_');
-                fileName = cleanComment.substring(0, 6);
+
+            if (comment && comment.trim().length > 0) {
+                // コメントがある場合：日付とコメントを組み合わせてファイル名にする
+                // ファイル名に使えない文字を「_」に置換し、長さを調整
+                const cleanComment = comment.replace(/[\/\-\:\*\?\"\<\>\|]/g, '_');
+                fileName = `鑑定_${y}_${m}_${d}_${cleanComment.substring(0, 10)}`;
             } else {
-                // 2. コメントがない場合：
-                const y = document.getElementById('year-input')?.value || "0000";
-                const m = document.getElementById('month-input')?.value || "0";
-                const d = document.getElementById('day-input')?.value || "0";
-                fileName = `鑑定${y}_${m}_${d}`;
+                // コメントがない場合：日付のみ
+                fileName = `鑑定_${y}_${m}_${d}`;
             }
             // ---------------------------
 
