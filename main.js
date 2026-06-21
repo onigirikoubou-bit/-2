@@ -210,27 +210,40 @@ function calcMiKyoMiJakuFull(nikkan, nenshi, gesshi, nishi, stars) {
     return "身弱";
 }
 
-function renderDaiunTable(startAge, baseEto, isForward, nikkan) {
+// 引数に currentAge を追加します
+function renderDaiunTable(startAge, baseEto, isForward, nikkan, currentAge) {
     const tableBody = document.getElementById('daiun-table-body');
     if (!tableBody) return;
     tableBody.innerHTML = '';
 
     let currentIndex = KANTO_LIST.indexOf(baseEto);
     for (let i = 0; i < 10; i++) {
-        const ageRange = `${startAge + (i * 10)}歳〜${startAge + (i * 10) + 9}歳`;
+        const rowStart = startAge + (i * 10);
+        const rowEnd = rowStart + 9;
+        const ageRange = `${rowStart}歳〜${rowEnd}歳`;
         const eto = KANTO_LIST[currentIndex];
+        
+        // --- 判定ロジック ---
+        const isCurrent = (currentAge >= rowStart && currentAge <= rowEnd);
         
         const findJudai = (target) => window.JUDAI_IMAGE_TABLE?.find(r => r[nikkan] === target)?.star || "--";
         const findJuni = (target) => window.JUNI_IMAGE_TABLE?.find(r => r[nikkan] === target)?.star || "--";
         
         const row = document.createElement('tr');
+       
+        // 【ここが重要】クラスを追加して色を指定
+        if (isCurrent) {
+            row.classList.add('current-age-row');
+        }
+        
         row.innerHTML = `
             <td>${ageRange}</td>
             <td style="font-size:22px; font-weight:bold;">${eto}</td>
-            <td>${findJudai(eto[0])}</td>
-            <td>${findJuni(eto[1])}</td>
+            <td style="font-size:18px;">${findJudai(eto[0])}</td>
+            <td style="font-size:18px;">${findJuni(eto[1])}</td>
         `;
         tableBody.appendChild(row);
+        
         currentIndex = (currentIndex + (isForward ? 1 : -1) + 60) % 60;
     }
 }
@@ -402,9 +415,24 @@ if (shugoshinArea && shugoshinContent && shugoInfo) {
     }).filter(Boolean);
 
     // 呼び出し
+    // 1. 守護神・忌神の計算
     const sResults = check([shugoInfo.p1, shugoInfo.p2, shugoInfo.p3], true, 0);
     const iResults = check([shugoInfo.i1, shugoInfo.i2], false, 0);
 
+    // 2. 中殺・異常干支の計算（追加！）
+    // trueYearEto, trueMonthEto, dayEto は既に performCalculation 内で定義されているはずです
+    const chusatsuData = getKanseiData(trueYearEto, trueMonthEto, dayEto);
+    let msgs = [];
+    if (chusatsuData.isNenChu) msgs.push("生年中殺");
+    if (chusatsuData.isGetsuChu) msgs.push("生月中殺");
+    if (chusatsuData.isNichiChu) msgs.push("生日中殺");
+    if (chusatsuData.isNishu) msgs.push("宿命二中殺");
+    if (chusatsuData.isGokan) msgs.push("互換中殺");
+    if (chusatsuData.isNichiza) msgs.push("日座中殺");
+    if (chusatsuData.isZen) msgs.push("全中殺");
+    if (chusatsuData.ijoCount > 0) msgs.push(`異常干支(${chusatsuData.ijoCount}個)`);
+
+    // 3. 表示の更新
     shugoshinContent.innerHTML = `
         <div style="font-size: 20px;">
         守護神：${formatShugoList([shugoInfo.p1, shugoInfo.p2, shugoInfo.p3])}<br>
@@ -412,6 +440,9 @@ if (shugoshinArea && shugoshinContent && shugoInfo) {
         <hr style="width: 80%; margin: 10px auto 10px 0; border: 0; border-top: 1px solid #ccc;">
         命式内守護神：${sResults.length > 0 ? sResults.join('、') : 'なし'}<br>
         命式内忌神：${iResults.length > 0 ? iResults.join('、') : 'なし'}
+        <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #ccc;">
+            中殺：${msgs.length > 0 ? msgs.join('、') : 'なし'}
+        </div>
         </div>`;
     shugoshinArea.style.display = 'block';
 
@@ -463,7 +494,7 @@ if (shugoshinArea && shugoshinContent && shugoInfo) {
     console.log("計算デバッグ:", { kiunDays, daiunNen }); // コンソールで値を確認できます
 
     // 4. 結果の出力
-    renderDaiunTable(daiunNen, KANTO_LIST[(KANTO_LIST.indexOf(trueMonthEto) + (isForward ? 1 : -1) + 60) % 60], isForward, nikkan);
+    renderDaiunTable(daiunNen, KANTO_LIST[(KANTO_LIST.indexOf(trueMonthEto) + (isForward ? 1 : -1) + 60) % 60], isForward, nikkan, age);
     document.getElementById('result-area').style.display = 'block';
 }
 }
@@ -503,14 +534,13 @@ if (shareBtn) {
     
     // 3. 完成した変数を関数に渡す
     await performCopy(fullResult, title);
-    console.log("コピー成功！");
 };
     
 // 2. 履歴保存を実行
     try {
-        const y = document.getElementById('year-input')?.value || "0000";
-        const m = document.getElementById('month-input')?.value || "00";
-        const d = document.getElementById('day-input')?.value || "00";
+        const y = document.getElementById('year-input')?.value || "";
+        const m = document.getElementById('month-input')?.value || "";
+        const d = document.getElementById('day-input')?.value || "";
         
         const commentInput = document.getElementById('comment-input')?.value;
         const title = (commentInput && commentInput.trim() !== "") ? commentInput.trim() : "";
@@ -552,14 +582,13 @@ document.addEventListener('DOMContentLoaded', () => {
         newCalcBtn.addEventListener('click', () => {
             performCalculation(); // 計算
 
-            const y = document.getElementById('year-input')?.value || "0000";
-            const m = document.getElementById('month-input')?.value || "00";
-            const d = document.getElementById('day-input')?.value || "00";
+            const y = document.getElementById('year-input')?.value || "";
+            const m = document.getElementById('month-input')?.value || "";
+            const d = document.getElementById('day-input')?.value || "";
             const comment = document.getElementById('comment-input')?.value || "";
 
             HistoryModule.save(`${y}/${m}/${d}`, comment); // 保存
             HistoryModule.render(); // 表示更新
-            console.log("計算完了: 履歴を1行だけ保存しました");
         });
     }
 
@@ -686,3 +715,44 @@ async function saveResultHandler() {
         document.body.removeChild(container);
     }
     }
+
+
+    const getKanseiData = (yEto, mEto, dEto) => {
+    // 支（2文字目）を取り出す
+    const yShi = yEto[1];
+    const mShi = mEto[1];
+    const dShi = dEto[1];
+
+    // 日干支から天中殺グループを判定（インデックスが不明なので、日干支そのものから判定）
+    // 既存の calcTenchusatsu がインデックスを受け取るものなら、indexを逆算するか、
+    // ここで直接「日干支の支」から判定ロジックを書く必要があります。
+    // 今回は最も確実な「日干支の支」による判定に変更します
+    
+    // 【重要】既存の calcTenchusatsu が index 依存なら、以下の簡易判定を使ってください
+    // ここでは天中殺の「2文字」が取得できればOKです
+    const tsGroup = getTenchusatsuByDayKanshi(dEto); 
+
+    const isNenChu = tsGroup.includes(yShi);
+    const isGetsuChu = tsGroup.includes(mShi);
+    const isNichiChu = tsGroup.includes(dShi);
+
+    const isNishu = isNenChu && isGetsuChu;
+    const isNichiza = ['甲戌', '乙亥'].includes(dEto);
+    const isGokan = (tsGroup.includes(yShi) && tsGroup.includes(dShi)) && (yShi !== dShi);
+    const isZen = isNichiza && isGetsuChu && isNenChu;
+
+    const ijoList = ['甲午', '丁亥', '戊子', '己亥', '辛巳', '壬午', '癸巳'];
+    const ijoCount = [yEto, mEto, dEto].filter(k => ijoList.includes(k)).length;
+
+    return { isNenChu, isGetsuChu, isNichiChu, isNishu, isGokan, isNichiza, isZen, ijoCount };
+};
+
+// 補助関数：日干支から天中殺の支を取得
+function getTenchusatsuByDayKanshi(dEto) {
+    // 60干支のリストから位置を特定して天中殺を返す
+    const idx = KANTO_LIST.indexOf(dEto);
+    const group = Math.floor(idx / 10);
+    const table = ["戌亥", "申酉", "午未", "辰巳", "寅卯", "子丑"];
+    const str = table[group];
+    return [str[0], str[1]];
+}

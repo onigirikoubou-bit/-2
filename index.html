@@ -114,6 +114,11 @@
     max-width: 300px; /* ここを調整して8文字分程度の幅にする */
 }
 
+.current-age-row {
+    color: red !important;
+    font-weight: bold !important;
+}
+
 </style>
 
 </head>
@@ -150,7 +155,7 @@
 <div class="history-area" style="flex: 0 0 200px;">
     <h4>履歴</h4>
     <div id="history-list"></div>
-    <button id="import-btn" type="button" onclick="HistoryModule.importSelected()">選択した履歴を取り込む</button>
+    <button id="import-btn" type="button" onclick="HistoryModule.importSelected()"  style="padding: 10px 20px; font-size: 16px; cursor: pointer;"">履歴取込</button>
 </div>
 
 <div id="result-area" style="display: none; display: flex; gap: 40px;">
