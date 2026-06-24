@@ -40,9 +40,23 @@
         #pos-f { border-right: none !important; }
         #pos-a, #pos-g, #pos-c { border: none !important; }
 
-        .daiun-table { border-collapse: collapse; width: 100%; max-width: 500px; margin-top: 20px; }
-        .daiun-table th, .daiun-table td { padding: 10px; border: 1px solid #ccc; text-align: center; font-family: "Yu Mincho", "游明朝", serif; }
-        .daiun-table th { background-color: #f2f2f2; }
+        .daiun-table {
+    border-collapse: collapse;
+    width: 100%;
+    max-width: 800px; /* 少し広げてみます */
+    margin-top: 20px;
+    table-layout: auto; /* 自動レイアウト */
+}
+
+.daiun-table th, .daiun-table td {
+    padding: 8px; /* パディングを少し減らしてスペースを確保 */
+    border: 1px solid #ccc;
+    text-align: center;
+    font-family: sans-serif; /* テストのため一度 sans-serif に変更して挙動を確認 */
+    white-space: nowrap;    /* ★重要：改行を禁止して横並びを強制します */
+    font-family: "Yu Mincho", "游明朝", serif !important;
+    font-size: 14px;        /* 少し小さくして収まりを良くします */
+}
 
 
    /* 干支表示エリアの強制縦並び (最強設定) */
@@ -86,37 +100,50 @@
     line-height: 1.2 !important;
 }
         
-        /* --- 今回追加するスタイル --- */
-        .app-container { display: flex; flex-wrap: wrap; gap: 40px; margin-top: 20px; }
-        .main-area { flex: 2; min-width: 350px; }
-        .side-area { flex: 1; min-width: 300px; }
-        @media (max-width: 800px) { .app-container { flex-direction: column; } }
-        
-        .history-item { font-size: 14px; margin-bottom: 8px; padding-bottom: 5px; border-bottom: 1px dashed #ccc; }
-        .daiun-table { border-collapse: collapse; width: 100%; font-size: 13px; }
-        .daiun-table th, .daiun-table td { padding: 6px; border: 1px solid #ccc; text-align: center; }
-
-/* 5. ボタンと入力エリアのセル */
-.input-cell {
-    text-align: center;
+        /* 1. 履歴リストの親要素 */
+#history-list {
+    margin: 0;
+    padding: 0;
+    display: block;
+    max-height: 400px; 
+    overflow-y: auto;
 }
 
+/* 2. 履歴アイテム（統合しました） */
 .history-item {
     display: flex;
     align-items: center;
-    white-space: nowrap; /* 強制的に改行しない */
-    margin-bottom: 5px;
+    font-size: 14px;
+    margin-bottom: 5px;      /* 2px〜5pxの間で調整してください */
+    padding-bottom: 2px;
+    border-bottom: 1px dashed #ccc;
+    white-space: nowrap;      /* 改行を防ぐ */
 }
 
+/* 3. アイテム内のラベル */
 .history-item label {
-    overflow: hidden;
-    text-overflow: ellipsis; /* 長すぎる場合は...で省略 */
-    max-width: 300px; /* ここを調整して8文字分程度の幅にする */
+    display: inline-block !important; /* 必須 */
+    width: 150px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+
+/* 4. その他必要なスタイル */
+.input-cell {
+    text-align: center;
 }
 
 .current-age-row {
     color: red !important;
     font-weight: bold !important;
+}
+
+#comment-input {
+    width: 100%;           /* 幅を枠いっぱいに */
+    word-wrap: break-word; /* 長い単語でも折り返す */
+    word-break: break-all; /* 強制的に改行 */
+    white-space: pre-wrap; /* 改行を保持しつつ、枠に合わせて折り返す */
 }
 
 </style>
@@ -147,7 +174,7 @@
         
         <div class="input-group">
             <label>メモ:</label>
-            <input type="text" id="comment-input" placeholder="コメント入力">
+            <textarea id="comment-input" placeholder="コメント入力" rows="2"></textarea>
         </div>
         
         <button id="share-or-copy-btn" style="display: none;">結果を保存</button>
@@ -184,7 +211,7 @@
     <div class="side-area" style="flex: 1;">
         <h3>大運表</h3>
         <table class="daiun-table">
-            <thead><tr><th>年齢</th><th>大運</th><th>十大主星</th><th>十二大従星</th></tr></thead>
+            <thead><tr><th>年齢</th><th width="60px">大運</th><th>十大主星</th><th>十二大従星</th></tr></thead>
             <tbody id="daiun-table-body"></tbody>
         </table>
     </div>

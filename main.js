@@ -61,28 +61,31 @@ const HistoryModule = {
         HistoryModule.render();
     },
 
-    // 画面に表示する
     render: () => {
-        const list = document.getElementById('history-list');
-        if (!list) return;
+    const list = document.getElementById('history-list');
+    if (!list) return; // 最初に存在チェック
 
-        const data = localStorage.getItem('searchHistory');
-        const history = data ? JSON.parse(data) : [];
+    const data = localStorage.getItem('searchHistory');
+    const history = data ? JSON.parse(data) : [];
 
-        list.innerHTML = history.map((h, index) => {
-            const commentPart = (h.comment && h.comment.trim() !== "") ? ` - ${h.comment}` : "";
-            return `
-                <div class="history-item" style="display: flex; align-items: center; margin-bottom: 5px; width: 100%;">
-                    <input type="radio" name="history-radio" value="${index}" id="h${index}">
-                    <label for="h${index}" style="margin-left: 8px; flex-grow: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                        <strong>${h.date}</strong>
-                        <span style="display: inline-block; max-width: 400px; overflow: hidden; text-overflow: ellipsis; vertical-align: bottom;">
-                            ${commentPart}
-                        </span>
-                    </label>
-                </div>`;
-        }).join('');
-    },
+    // 変数に溜めてから、最後に一度だけ代入する
+    const htmlString = history.map((h, index) => {
+        const commentPart = (h.comment && h.comment.trim() !== "") ? ` - ${h.comment}` : "";
+        return `
+            <div class="history-item" style="display: flex; align-items: center; margin-bottom: 5px; width: 100%;">
+                <input type="radio" name="history-radio" value="${index}" id="h${index}">
+                <label for="h${index}" style="margin-left: 8px; flex-grow: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                    <strong>${h.date}</strong>
+                    <span style="display: inline-block; max-width: 400px; overflow: hidden; text-overflow: ellipsis; vertical-align: bottom;">
+                        ${commentPart}
+                    </span>
+                </label>
+            </div>`;
+    }).join('');
+
+    // ここで一気に書き換える
+    list.innerHTML = htmlString;
+},
 
     // 取込処理 (ボタンから直接呼び出す)
     importSelected: () => {
@@ -210,13 +213,15 @@ function calcMiKyoMiJakuFull(nikkan, nenshi, gesshi, nishi, stars) {
     return "身弱";
 }
 
-// 引数に currentAge を追加します
 function renderDaiunTable(startAge, baseEto, isForward, nikkan, currentAge) {
     const tableBody = document.getElementById('daiun-table-body');
     if (!tableBody) return;
-    tableBody.innerHTML = '';
 
+    // 1. 変数を用意して空文字で初期化
+    let newRows = '';
     let currentIndex = KANTO_LIST.indexOf(baseEto);
+
+    // 2. ループ処理（ここで1回だけ回す）
     for (let i = 0; i < 10; i++) {
         const rowStart = startAge + (i * 10);
         const rowEnd = rowStart + 9;
@@ -225,29 +230,27 @@ function renderDaiunTable(startAge, baseEto, isForward, nikkan, currentAge) {
         
         // --- 判定ロジック ---
         const isCurrent = (currentAge >= rowStart && currentAge <= rowEnd);
-        
         const findJudai = (target) => window.JUDAI_IMAGE_TABLE?.find(r => r[nikkan] === target)?.star || "--";
         const findJuni = (target) => window.JUNI_IMAGE_TABLE?.find(r => r[nikkan] === target)?.star || "--";
         
-        const row = document.createElement('tr');
-       
-        // 【ここが重要】クラスを追加して色を指定
-        if (isCurrent) {
-            row.classList.add('current-age-row');
-        }
+        // クラスの判定
+        const rowClass = isCurrent ? 'current-age-row' : '';
         
-        row.innerHTML = `
-            <td>${ageRange}</td>
-            <td style="font-size:22px; font-weight:bold;">${eto}</td>
-            <td style="font-size:18px;">${findJudai(eto[0])}</td>
-            <td style="font-size:18px;">${findJuni(eto[1])}</td>
-        `;
-        tableBody.appendChild(row);
+        // 3. 文字列として変数に追加
+        newRows += `
+            <tr class="${rowClass}">
+                <td>${ageRange}</td>
+                <td style="font-size:22px; font-weight:bold;">${eto}</td>
+                <td style="font-size:18px;">${findJudai(eto[0])}</td>
+                <td style="font-size:18px;">${findJuni(eto[1])}</td>
+            </tr>`;
         
         currentIndex = (currentIndex + (isForward ? 1 : -1) + 60) % 60;
     }
+    
+    // 4. ループが終わった後に、一回だけ代入する
+    tableBody.innerHTML = newRows;
 }
-
 // ==========================================
 // 3. メイン計算ロジック（中央揃え・複数蔵干出力版）
 // ==========================================
@@ -419,9 +422,26 @@ if (shugoshinArea && shugoshinContent && shugoInfo) {
     const sResults = check([shugoInfo.p1, shugoInfo.p2, shugoInfo.p3], true, 0);
     const iResults = check([shugoInfo.i1, shugoInfo.i2], false, 0);
 
-    // 2. 中殺・異常干支の計算（追加！）
-    // trueYearEto, trueMonthEto, dayEto は既に performCalculation 内で定義されているはずです
+    // --- 中殺・干合の計算 ---
     const chusatsuData = getKanseiData(trueYearEto, trueMonthEto, dayEto);
+    
+    // --- 干合の判定 ---
+    let kangoMsgs = [];
+    
+    // 年・月干合の場合
+    const ngKango = getKangoInfo(nenkan, gekkan);
+    if (ngKango) {
+        // 月干が変化すると想定して「（月）」と表示
+        kangoMsgs.push(`${ngKango.pairName}（月）`);
+    }
+
+    // 月・日干合の場合
+    const gnKango = getKangoInfo(gekkan, nikkan);
+    if (gnKango) {
+        // 月干または日干が変化すると想定して「（月）」と表示
+        kangoMsgs.push(`${gnKango.pairName}（月）`);
+    }
+    
     let msgs = [];
     if (chusatsuData.isNenChu) msgs.push("生年中殺");
     if (chusatsuData.isGetsuChu) msgs.push("生月中殺");
@@ -432,6 +452,7 @@ if (shugoshinArea && shugoshinContent && shugoInfo) {
     if (chusatsuData.isZen) msgs.push("全中殺");
     if (chusatsuData.ijoCount > 0) msgs.push(`異常干支(${chusatsuData.ijoCount}個)`);
 
+
     // 3. 表示の更新
     shugoshinContent.innerHTML = `
         <div style="font-size: 20px;">
@@ -441,7 +462,8 @@ if (shugoshinArea && shugoshinContent && shugoInfo) {
         命式内守護神：${sResults.length > 0 ? sResults.join('、') : 'なし'}<br>
         命式内忌神：${iResults.length > 0 ? iResults.join('、') : 'なし'}
         <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #ccc;">
-            中殺：${msgs.length > 0 ? msgs.join('、') : 'なし'}
+            中殺：${msgs.length > 0 ? msgs.join('、') : 'なし'}<br>
+            干合：${kangoMsgs.length > 0 ? kangoMsgs.join('、') : 'なし'}
         </div>
         </div>`;
     shugoshinArea.style.display = 'block';
@@ -535,74 +557,50 @@ if (shareBtn) {
     // 3. 完成した変数を関数に渡す
     await performCopy(fullResult, title);
 };
-    
-// 2. 履歴保存を実行
-    try {
-        const y = document.getElementById('year-input')?.value || "";
-        const m = document.getElementById('month-input')?.value || "";
-        const d = document.getElementById('day-input')?.value || "";
-        
-        const commentInput = document.getElementById('comment-input')?.value;
-        const title = (commentInput && commentInput.trim() !== "") ? commentInput.trim() : "";
-        // 【追加】ここで本当にコメントが取れているか確認！
-console.log("保存しようとしているタイトル:", title); 
-
-        // 履歴保存と反映をセットで実行
-        if (typeof HistoryModule !== 'undefined') {
-            HistoryModule.save(`${y}/${m}/${d}`, title);
-            HistoryModule.render(); 
-        } else {
-            console.error("HistoryModuleが見つかりません");
-        }
-    } catch (e) {
-        console.error("履歴保存中にエラーが発生しました:", e);
-    }
 }
-// const を let に変更する
-let y = document.getElementById('year-input').value;
-let m = document.getElementById('month-input').value;
-let d = document.getElementById('day-input').value;
-comment = document.getElementById('comment-input').value;
-
-HistoryModule.save(`${y}/${m}/${d}`, comment);
-HistoryModule.render();
 
 // ==========================================
 // 4. 初期化イベント (全てここに統合)
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
     
-    // --- 1. 計算ボタンのイベント一本化 ---
+    // --- 0. 初回読み込み時の表示 ---
+    HistoryModule.render();
+
+    // --- 1. 計算ボタンのイベント設定 ---
     const calcBtn = document.getElementById('calc-btn');
     if (calcBtn) {
-        // 古いイベントを確実に消すために複製して置換
         const newCalcBtn = calcBtn.cloneNode(true);
         calcBtn.parentNode.replaceChild(newCalcBtn, calcBtn);
 
         newCalcBtn.addEventListener('click', () => {
-            performCalculation(); // 計算
+            performCalculation(); // 計算実行
 
+            // 保存処理もここへ統合（計算とセット）
             const y = document.getElementById('year-input')?.value || "";
             const m = document.getElementById('month-input')?.value || "";
             const d = document.getElementById('day-input')?.value || "";
             const comment = document.getElementById('comment-input')?.value || "";
+            const title = (comment && comment.trim() !== "") ? comment.trim() : "";
 
-            HistoryModule.save(`${y}/${m}/${d}`, comment); // 保存
-            HistoryModule.render(); // 表示更新
+            if (y && m && d) {
+                HistoryModule.save(`${y}/${m}/${d}`, title);
+                HistoryModule.render();
+            }
         });
     }
 
-    // --- 2. 保存ボタンのイベント登録 ---
+    // --- 2. 保存ボタン(saveBtn)の処理 ---
     const saveBtn = document.getElementById('share-or-copy-btn');
     if (saveBtn) {
-        saveBtn.setAttribute('onclick', ''); 
-        saveBtn.removeEventListener('click', saveResultHandler);
-        saveBtn.addEventListener('click', saveResultHandler);
         saveBtn.style.display = 'block';
+        // ここで直接「保存」を呼ばず、既存の saveResultHandler を使う設計ならそのままに
+        saveBtn.addEventListener('click', (e) => {
+            if (typeof saveResultHandler === 'function') {
+                saveResultHandler(e);
+            }
+        });
     }
-
-    // --- 3. ページ初回読み込み時の履歴表示 ---
-    HistoryModule.render();
 });
 
 // --- saveResultHandler 関数はここより下（DOMContentLoadedの外）に定義してください ---
@@ -612,7 +610,7 @@ async function saveResultHandler() {
 
     // 1. 隠しコンテナ (幅580px固定)
     const container = document.createElement('div');
-    container.style.cssText = "position:absolute; left:-9999px; top:0; width:580px; background:#fcfbf9; padding:20px; display:block; box-sizing:border-box;";
+    container.style.cssText = "position:absolute; left:-9999px; top:0; width:800px; background:#fcfbf9; padding:20px; display:block; box-sizing:border-box;";
     document.body.appendChild(container);
 
     // 2. 入力欄から直接、誕生日とコメントを取得する
@@ -755,4 +753,22 @@ function getTenchusatsuByDayKanshi(dEto) {
     const table = ["戌亥", "申酉", "午未", "辰巳", "寅卯", "子丑"];
     const str = table[group];
     return [str[0], str[1]];
+}
+
+function getKangoInfo(kan1, kan2) {
+    // 変化する対象の干を定義
+    const kangoTable = [
+        { pair: ['甲', '己'], name: '甲己', result: '甲' }, 
+        { pair: ['乙', '庚'], name: '乙庚', result: '乙' },
+        { pair: ['丙', '辛'], name: '丙辛', result: '丙' },
+        { pair: ['丁', '壬'], name: '丁壬', result: '丁' },
+        { pair: ['戊', '癸'], name: '戊癸', result: '戊' }
+    ];
+
+    const match = kangoTable.find(item => 
+        (item.pair[0] === kan1 && item.pair[1] === kan2) || 
+        (item.pair[0] === kan2 && item.pair[1] === kan1)
+    );
+    
+    return match ? { pairName: match.name, result: match.result } : null;
 }
