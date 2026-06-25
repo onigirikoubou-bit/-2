@@ -133,6 +133,22 @@ function setEto(elementId, etoText) {
     }
 }
 
+// 2支の判定表（位相法1）
+const ishou1Map = {
+    "子": {"丑": "支合", "卯": "旺気刑", "午": "冲動", "未": "害", "酉": "破"},
+    "丑": {"子": "支合", "辰": "破", "巳": "害", "午": "冲動・庫気刑", "戌": "庫気刑"},
+    "寅": {"巳": "害・生貴刑", "申": "冲動・生貴刑", "亥": "支合"},
+    "卯": {"子": "旺気刑", "辰": "害", "午": "破", "酉": "冲動", "戌": "支合"},
+    "辰": {"丑": "破", "卯": "害", "辰": "自刑", "酉": "支合", "戌": "冲動"},
+    "巳": {"寅": "害・生貴刑", "申": "支合・生貴刑", "亥": "冲動"},
+    "午": {"子": "冲動", "丑": "害", "卯": "破", "午": "自刑", "未": "支合"},
+    "未": {"子": "害", "丑": "冲動・庫気刑", "未": "支合", "亥": "庫気刑・破"},
+    "申": {"寅": "冲動・生貴刑", "巳": "支合・生貴刑", "亥": "害"},
+    "酉": {"子": "破", "卯": "冲動", "辰": "支合", "酉": "自刑", "戌": "害"},
+    "戌": {"丑": "庫気刑", "卯": "支合", "辰": "冲動", "未": "庫気刑・破", "酉": "害"},
+    "亥": {"寅": "支合", "巳": "冲動", "申": "害", "亥": "自刑"}
+};
+
 // ==========================================
 // 2. 補助計算関数
 // ==========================================
@@ -453,6 +469,14 @@ if (shugoshinArea && shugoshinContent && shugoInfo) {
     if (chusatsuData.ijoCount > 0) msgs.push(`異常干支(${chusatsuData.ijoCount}個)`);
 
 
+// 3支の判定表（位相法2 - 三合会局・半会・方三位）
+const ishou3Map = [
+    {branch: "子", set: ["申", "辰"], type: "三合会局"},
+    {branch: "子", set: ["申", "辰"], type: "半会"}, // 簡略化のため条件は調整が必要
+    // ...必要に応じてここに3支の組み合わせデータを追加
+];
+
+
     // 3. 表示の更新
     shugoshinContent.innerHTML = `
         <div style="font-size: 20px;">
@@ -463,7 +487,9 @@ if (shugoshinArea && shugoshinContent && shugoInfo) {
         命式内忌神：${iResults.length > 0 ? iResults.join('、') : 'なし'}
         <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #ccc;">
             中殺：${msgs.length > 0 ? msgs.join('、') : 'なし'}<br>
-            干合：${kangoMsgs.length > 0 ? kangoMsgs.join('、') : 'なし'}
+            干合：${kangoMsgs.length > 0 ? kangoMsgs.join('、') : 'なし'}<br>
+            位相法：<br>
+            &nbsp;&nbsp;${calculateIshouhou(trueYearEto, trueMonthEto, dayEto).join('<br>&nbsp;&nbsp;')}
         </div>
         </div>`;
     shugoshinArea.style.display = 'block';
@@ -713,6 +739,35 @@ async function saveResultHandler() {
         document.body.removeChild(container);
     }
     }
+
+
+
+    function calculateIshouhou(y, m, d) {
+    let results = [];
+    
+    // 後ろの1文字（十二支）だけを取り出す関数
+    const getBranch = (str) => str.slice(-1);
+
+    // 十二支だけを抽出したデータを作成
+    const branches = { 
+        "年": getBranch(y), 
+        "月": getBranch(m), 
+        "日": getBranch(d) 
+    };
+    
+    const pairs = [["年", "月"], ["月", "日"], ["年", "日"]];
+
+    pairs.forEach(([a, b]) => {
+        const b1 = branches[a], b2 = branches[b];
+        
+        // 抽出した十二支で検索
+        if (ishou1Map[b1] && ishou1Map[b1][b2]) {
+            results.push(`${ishou1Map[b1][b2]}（${a}・${b}）`);
+        }
+    });
+
+    return results;
+}
 
 
     const getKanseiData = (yEto, mEto, dEto) => {
