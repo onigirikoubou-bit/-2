@@ -470,28 +470,41 @@ if (shugoshinArea && shugoshinContent && shugoInfo) {
 
 
 // 3支の判定表（位相法2 - 三合会局・半会・方三位）
-const ishou3Map = [
-    {branch: "子", set: ["申", "辰"], type: "三合会局"},
-    {branch: "子", set: ["申", "辰"], type: "半会"}, // 簡略化のため条件は調整が必要
-    // ...必要に応じてここに3支の組み合わせデータを追加
-];
+// const ishou3Map = [
+//     {branch: "子", set: ["申", "辰"], type: "三合会局"},
+//     {branch: "子", set: ["申", "辰"], type: "半会"}, // 簡略化のため条件は調整が必要
+//     // ...必要に応じてここに3支の組み合わせデータを追加
+// ];
 
 
     // 3. 表示の更新
     shugoshinContent.innerHTML = `
-        <div style="font-size: 20px;">
-        守護神：${formatShugoList([shugoInfo.p1, shugoInfo.p2, shugoInfo.p3])}<br>
-        忌神：${formatShugoList([shugoInfo.i1, shugoInfo.i2])}
+    <div style="font-size: 20px; font-family: '游明朝', 'Yu Mincho', serif;">
+        <span style="font-family: '游明朝', 'Yu Mincho', serif;">守護神：</span>
+        <span style="font-family: '游ゴシック', 'Yu Gothic', sans-serif; font-weight: 600;">${formatShugoList([shugoInfo.p1, shugoInfo.p2, shugoInfo.p3])}</span><br>
+        
+        <span style="font-family: '游明朝', 'Yu Mincho', serif;">忌神：</span>
+        <span style="font-family: '游ゴシック', 'Yu Gothic', sans-serif; font-weight: 600;">${formatShugoList([shugoInfo.i1, shugoInfo.i2])}</span>
+        
         <hr style="width: 80%; margin: 10px auto 10px 0; border: 0; border-top: 1px solid #ccc;">
-        命式内守護神：${sResults.length > 0 ? sResults.join('、') : 'なし'}<br>
-        命式内忌神：${iResults.length > 0 ? iResults.join('、') : 'なし'}
+        
+        <span style="font-family: '游明朝', 'Yu Mincho', serif;">命式内守護神：</span>
+        <span style="font-family: '游ゴシック', 'Yu Gothic', sans-serif; font-weight: 600;">${sResults.length > 0 ? sResults.join('、') : 'なし'}</span><br>
+        
+        <span style="font-family: '游明朝', 'Yu Mincho', serif;">命式内忌神：</span>
+        <span style="font-family: '游ゴシック', 'Yu Gothic', sans-serif; font-weight: 600;">${iResults.length > 0 ? iResults.join('、') : 'なし'}</span>
+        
         <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #ccc;">
-            中殺：${msgs.length > 0 ? msgs.join('、') : 'なし'}<br>
-            干合：${kangoMsgs.length > 0 ? kangoMsgs.join('、') : 'なし'}<br>
-            位相法：<br>
-            &nbsp;&nbsp;${calculateIshouhou(trueYearEto, trueMonthEto, dayEto).join('<br>&nbsp;&nbsp;')}
+            <span style="font-family: '游明朝', 'Yu Mincho', serif;">中殺：</span>
+            <span style="font-family: '游ゴシック', 'Yu Gothic', sans-serif; font-weight: 600;">${msgs.length > 0 ? msgs.join('、') : 'なし'}</span><br>
+            
+            <span style="font-family: '游明朝', 'Yu Mincho', serif;">干合：</span>
+            <span style="font-family: '游ゴシック', 'Yu Gothic', sans-serif; font-weight: 600;">${kangoMsgs.length > 0 ? kangoMsgs.join('、') : 'なし'}</span><br>
+            
+            <span style="font-family: '游明朝', 'Yu Mincho', serif;">位相法：</span><br>
+            <span style="font-family: '游ゴシック', 'Yu Gothic', sans-serif; font-weight: 600;">&nbsp;&nbsp;${calculateIshouhou(trueYearEto, trueMonthEto, dayEto).join('<br>&nbsp;&nbsp;')}</span>
         </div>
-        </div>`;
+    </div>`;
     shugoshinArea.style.display = 'block';
 
     // 大運計算
@@ -740,29 +753,41 @@ async function saveResultHandler() {
     }
     }
 
+// 1. 位相法グループの定義（位相法2の表を整理）
+const ishou2Groups = [
+    { name: "申子辰", branches: ["申", "子", "辰"] },
+    { name: "巳酉丑", branches: ["巳", "酉", "丑"] },
+    { name: "寅午戌", branches: ["寅", "午", "戌"] },
+    { name: "亥卯未", branches: ["亥", "卯", "未"] }
+];
 
-
-    function calculateIshouhou(y, m, d) {
+    // 2. 位相法算出関数
+function calculateIshouhou(y, m, d) {
     let results = [];
-    
-    // 後ろの1文字（十二支）だけを取り出す関数
     const getBranch = (str) => str.slice(-1);
+    const bY = getBranch(y), bM = getBranch(m), bD = getBranch(d);
+    const branches = [bY, bM, bD];
 
-    // 十二支だけを抽出したデータを作成
-    const branches = { 
-        "年": getBranch(y), 
-        "月": getBranch(m), 
-        "日": getBranch(d) 
-    };
-    
-    const pairs = [["年", "月"], ["月", "日"], ["年", "日"]];
-
-    pairs.forEach(([a, b]) => {
-        const b1 = branches[a], b2 = branches[b];
-        
-        // 抽出した十二支で検索
+    // (1) 2支の判定（位相法1）
+    const pairs = [["年", bY, "月", bM], ["月", bM, "日", bD], ["年", bY, "日", bD]];
+    pairs.forEach(([label1, b1, label2, b2]) => {
         if (ishou1Map[b1] && ishou1Map[b1][b2]) {
-            results.push(`${ishou1Map[b1][b2]}（${a}・${b}）`);
+            results.push(`${ishou1Map[b1][b2]}（${label1}・${label2}）`);
+        }
+    });
+
+    // (2) 3支/2支のグループ判定（位相法2：三合会局・半会）
+    ishou2Groups.forEach(g => {
+        // 命式内の支が、このグループにいくつ含まれているかカウント
+        const matches = branches.filter(b => g.branches.includes(b));
+        const uniqueMatches = [...new Set(matches)]; // 重複を除去
+
+        if (uniqueMatches.length === 3) {
+            results.push(`三合会局（${g.name}）`);
+        } else if (uniqueMatches.length === 2) {
+            // ここで、揃った2つの支だけを表示するように変更
+            const matchStr = uniqueMatches.join('・');
+            results.push(`半会（${matchStr}）`);
         }
     });
 
