@@ -146,12 +146,6 @@
     white-space: pre-wrap; /* 改行を保持しつつ、枠に合わせて折り返す */
 }
 
-.left-side {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    flex: 0 0 350px;
-}
 </style>
 
 </head>
@@ -160,7 +154,7 @@
 <h1>算命学・命式算出</h1>
 <div class="top-wrapper" style="display: flex; gap: 40px; align-items: flex-start; margin-bottom: 30px;">
     
-    <div class="left-side" style="width: 280px !important; min-width: 280px !important; flex: 0 0 200px !important; display: flex; flex-direction: column; gap: 10px;">
+    <div class="left-side" style="display: flex; flex-direction: column; gap: 10px;">
         <div class="input-group"><label>西暦年:</label><input type="number" id="year-input" value=""></div>
         <div class="input-group"><label>月:</label><input type="number" id="month-input" min="1" max="12"></div>
         <div class="input-group"><label>日:</label><input type="number" id="day-input" min="1" max="31"></div>
@@ -174,21 +168,8 @@
             </div>
         </div>
     </div>
-<!-- ここに追加 -->
-    <div class="input-group" style="margin-top: 20px;">
-        <div style="margin: 10px 0;">
-            <button onclick="showList('sengoku')">戦国武将</button>
-            <button onclick="showList('edo')">江戸文化人</button>
-            <button onclick="showHistoryList()">過去履歴</button>
-        </div>
-        <!-- リスト表示エリア：幅を親（left-side）に合わせ、高さを固定してスクロールさせる -->
-        <div id="figure-display-area" style="width: 100%; height: 300px; overflow-y: auto; border: 1px solid #ccc; padding: 5px; box-sizing: border-box; background: #fff;">
-            リストを選択してください
-        </div>
-    </div>
-</div>
 
-    <div class="right-side" style="flex: 1; min-width: 0;">
+    <div class="right-side" style="display: flex; flex-direction: column; gap: 15px;">
         <button id="calc-btn" style="padding: 10px 20px; font-size: 16px; cursor: pointer; background: #8a1414; color: #fff; border: none; border-radius: 4px;">算出</button>
         
         <div class="input-group">
@@ -197,8 +178,7 @@
         </div>
         
         <button id="share-or-copy-btn" style="display: none;">結果を保存</button>
-    </div>
-
+        
 <div class="history-area" style="flex: 0 0 200px;">
     <h4>履歴</h4>
     <div id="history-list"></div>
@@ -216,16 +196,16 @@
                     <td><div class="pillar-label">年</div><div id="year-eto" class="eto-grid eto-large"></div><div id="year-zoukan"></div></td>
                     <td><div class="pillar-label">年干天中</div><div id="nenkan-tenchu-text" class="eto-grid eto-small"></div></td>
                 </tr>
-        </table>
+            </table>
         </div>
         <div id="shugoshin-result" style="margin: 10px 0; display: none;">
                 <div id="shugoshin-content" style="font-size: 16px; line-height: 1.6;"></div>
-        </div>
+            </div>
         <table id="body-map">
                 <tr><td id="pos-a">--</td><td id="pos-h">頭</td><td id="pos-g">初年</td></tr>
                 <tr><td id="pos-b">右手</td><td id="pos-i">胸</td><td id="pos-f">左手</td></tr>
                 <tr><td id="pos-c">晩年</td><td id="pos-d">腹</td><td id="pos-e">中年</td></tr>
-        </table>
+            </table>
     </div>
             
     <div class="side-area" style="flex: 1;">
@@ -240,7 +220,7 @@
     <script src="sekki_data.js"></script>
     <script src="star_tables.js"></script>
     <script src="shugoshin_data.js"></script>
-    
+
     <script src="js/sekki_1800_1809.js"></script>
     <script src="js/sekki_1810_1819.js"></script>
     <script src="js/sekki_1820_1829.js"></script>
