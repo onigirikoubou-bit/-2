@@ -48,6 +48,66 @@ const isValidDate = (year, month, day) => {
            date.getDate() === parseInt(day);
 };
 
+function showHistoryList() {
+    console.log("過去履歴を表示します"); // 確認用
+    ArchiveModule.render(); // 以前作成した関数を呼び出す
+}
+
+// --- スタイル定義 (ここでフォントサイズを一括管理できます＝歴史エリア) ---
+const styles = {
+    detailArea: `display: none; padding: 10px; font-size: 0.85em; background: #f9f9f9; color: #555; line-height: 1.4;`,
+    deathInfo: `font-size: 0.9em; font-weight: bold; color: #333; text-align: right; border-top: 1px dashed #ccc; padding-top: 5px; margin-top: 5px;`
+};
+
+// --- 過去履歴（30件）専用の管理モジュール ---
+const ArchiveModule = {
+    STORAGE_KEY: 'myAppArchive', // 既存と被らない別のキー名
+
+    // 1. 保存処理
+    save: (data) => {
+        let archive = JSON.parse(localStorage.getItem(ArchiveModule.STORAGE_KEY) || '[]');
+        archive.unshift(data); // 先頭に追加
+        if (archive.length > 30) archive = archive.slice(0, 30); // 30件制限
+        localStorage.setItem(ArchiveModule.STORAGE_KEY, JSON.stringify(archive));
+    },
+
+    // 2. 表示処理
+    render: () => {
+        const archive = JSON.parse(localStorage.getItem(ArchiveModule.STORAGE_KEY) || '[]');
+        const displayArea = document.getElementById('figure-display-area');
+        
+        if (archive.length === 0) {
+            displayArea.innerHTML = "過去履歴はありません。";
+            return;
+        }
+
+        let html = `<h4 style="margin: 10px 0;">過去の履歴（最新30件）</h4><ul style="list-style: none; padding: 0;">`;
+        archive.forEach((h, index) => {
+            html += `
+                <li style="cursor: pointer; padding: 5px; border-bottom: 1px solid #eee;" 
+                    onclick="ArchiveModule.load(${index})">
+                    ${h.comment || '無題'} <small>(${h.year}/${h.month}/${h.day})</small>
+                </li>`;
+        });
+        html += `</ul>`;
+        displayArea.innerHTML = html;
+    },
+
+    // 3. 呼び出し処理
+    load: (index) => {
+        const archive = JSON.parse(localStorage.getItem(ArchiveModule.STORAGE_KEY) || '[]');
+        const h = archive[index];
+        
+        document.getElementById('year-input').value = h.year;
+        document.getElementById('month-input').value = h.month;
+        document.getElementById('day-input').value = h.day;
+        document.getElementById('comment-input').value = h.comment;
+        
+        // 計算実行（既存の関数を使用）
+        if (typeof performCalculation === 'function') performCalculation();
+    }
+};
+
 // ==========================================
 // 3. 履歴管理モジュール (HistoryModule)
 // ==========================================
@@ -601,21 +661,21 @@ if (shareBtn) {
 // ==========================================
 // 4. 初期化イベント (全てここに統合)
 // ==========================================
+// --- [2] 初期化処理 ---
 document.addEventListener('DOMContentLoaded', () => {
     
-    // --- 0. 初回読み込み時の表示 ---
+    // 0. 初回表示
     HistoryModule.render();
 
-    // --- 1. 計算ボタンのイベント設定 ---
+    // 1. 計算ボタンのイベント設定
     const calcBtn = document.getElementById('calc-btn');
     if (calcBtn) {
         const newCalcBtn = calcBtn.cloneNode(true);
         calcBtn.parentNode.replaceChild(newCalcBtn, calcBtn);
 
         newCalcBtn.addEventListener('click', () => {
-            performCalculation(); // 計算実行
+            performCalculation(); 
 
-            // 保存処理もここへ統合（計算とセット）
             const y = document.getElementById('year-input')?.value || "";
             const m = document.getElementById('month-input')?.value || "";
             const d = document.getElementById('day-input')?.value || "";
@@ -623,17 +683,20 @@ document.addEventListener('DOMContentLoaded', () => {
             const title = (comment && comment.trim() !== "") ? comment.trim() : "";
 
             if (y && m && d) {
+                // 既存の履歴
                 HistoryModule.save(`${y}/${m}/${d}`, title);
                 HistoryModule.render();
+                
+                // 新規：過去履歴（30件）にも保存
+                ArchiveModule.save({ year: y, month: m, day: d, comment: title });
             }
         });
     }
 
-    // --- 2. 保存ボタン(saveBtn)の処理 ---
+    // 2. 保存ボタン(saveBtn)の処理など...
     const saveBtn = document.getElementById('share-or-copy-btn');
     if (saveBtn) {
         saveBtn.style.display = 'block';
-        // ここで直接「保存」を呼ばず、既存の saveResultHandler を使う設計ならそのままに
         saveBtn.addEventListener('click', (e) => {
             if (typeof saveResultHandler === 'function') {
                 saveResultHandler(e);
@@ -691,16 +754,53 @@ async function saveResultHandler() {
         document.querySelector('.side-area')
     ];
 
-    parts.forEach(part => {
-        if (part) {
-            const clone = part.cloneNode(true);
-            const titleEl = clone.querySelector('#display-title');
-            if (titleEl) titleEl.style.display = 'none'; // 重複タイトルを隠す
-            clone.style.display = 'block';
-            clone.style.marginBottom = '20px';
-            container.appendChild(clone);
+// テーブルの表示を強制的に再レンダリングさせる処理
+const map = document.getElementById('body-map');
+if (map) {
+    map.style.display = 'none'; // 一瞬消す
+    map.offsetHeight;           // 再計算を強制的にトリガーさせる
+    map.style.display = 'table'; // 再表示する
+}
+
+    // --- 修正箇所：パーツをコピーして表示する処理 ---
+parts.forEach(part => {
+    if (part) {
+        const clone = part.cloneNode(true);
+        
+        // 【1】表示用のスタイルを直接書き込む（クラスやCSSファイルに依存させない）
+        clone.style.display = 'block';
+        clone.style.marginBottom = '20px';
+        
+        // 【2】クローンの中にあるテーブルを探して強制的にスタイルを直書きする
+        const table = clone.querySelector('table');
+        if (table) {
+            table.style.cssText = `
+                display: table !important;
+                border-collapse: collapse !important;
+                table-layout: fixed !important;
+                width: 240px !important;
+                margin: 20px auto !important;
+                border: 1px solid #000 !important;
+            `;
+            
+            // 【3】tdにも直接スタイルを適用
+            const tds = table.querySelectorAll('td');
+            tds.forEach(td => {
+                td.style.cssText = `
+                    width: 80px !important;
+                    height: 80px !important;
+                    padding: 0 !important;
+                    border: 1px solid #000 !important;
+                    text-align: center !important;
+                    vertical-align: middle !important;
+                    font-size: 19px !important;
+                `;
+            });
         }
-    });
+        
+        container.appendChild(clone);
+    }
+});
 
     // 6. 画像生成 (JPEG形式でダウンロード)
     try {
@@ -851,4 +951,148 @@ function getKangoInfo(kan1, kan2) {
     );
     
     return match ? { pairName: match.name, result: match.result } : null;
+}
+
+
+// リストを表示する共通関数
+function renderList(figures) {
+    const area = document.getElementById('figures-display-area');
+    if (!area) return;
+    
+    area.innerHTML = '';
+    
+    // 生年順にソート
+    const sorted = [...figures].sort((a, b) => {
+        // もしデータに birth がない場合に備えての安全策
+        const b1 = new Date(a.birth || "0001-01-01");
+        const b2 = new Date(b.birth || "0001-01-01");
+        return b1 - b2;
+    });
+
+    const ul = document.createElement('ul');
+    sorted.forEach(p => {
+        const li = document.createElement('li');
+        li.textContent = `${p.name}（生年: ${p.birth || '不明'}）`;
+        ul.appendChild(li);
+    });
+    area.appendChild(ul);
+}
+
+
+/**
+ * 武将・文化人リストを表示する関数
+ * @param {string} type - 'sengoku' か 'edo'
+ */
+function showList(type) {
+    const displayArea = document.getElementById('figure-display-area');
+    
+    // データを取得（window直下にあるか確認）
+    const data = (type === 'sengoku') ? window.SENGOKU_FIGURES : window.EDO_CULTURE_FIGURES;
+    
+    // デバッグ用：データがない場合にコンソールに出力
+    if (!data) {
+        console.error("データが見つかりません:", type, window.SENGOKU_FIGURES, window.EDO_CULTURE_FIGURES);
+        displayArea.innerHTML = "データが読み込めていません。コンソールを確認してください。";
+        return;
+    }
+    
+    // リスト生成（見出しを削除）
+    let html = `<ul style="list-style: none; padding: 0;">`;
+    
+    // main.js の showList 関数のループ部分を修正
+data.forEach(item => {
+    // 一意なIDを作る（評伝を表示・非表示するためのID）
+    const detailId = `detail-${item.name.replace(/\s+/g, '')}`;
+    
+    let deathInfoText = ""; // 表示する文字列を入れる箱
+
+    if (item.birth && item.death) {
+        try {
+            const bDate = new Date(item.birth);
+            const dDate = new Date(item.death);
+
+            // 1. 西暦没年を取得
+            const dYear = dDate.getFullYear();
+
+            // 2. 年齢を計算 (没年月日 - 生年月日)
+            let age = dYear - bDate.getFullYear();
+            
+            // 没月日が生まれる前なら、年齢を1つ引く (満年齢計算)
+            const dMonth = dDate.getMonth();
+            const dDay = dDate.getDate();
+            const bMonth = bDate.getMonth();
+            const bDay = bDate.getDate();
+
+            if (dMonth < bMonth || (dMonth === bMonth && dDay < bDay)) {
+                age--;
+            }
+
+            // 3. 表示用の文字列を作る (例: "1581年52歳で没。")
+            // ※当時の「数え年」ではなく、現代的な「満年齢」での計算です。
+            deathInfoText = `${dYear}年${age}歳で没。`;
+
+        } catch (e) {
+            console.error("日付計算エラー:", item.name, e);
+        }
+    }
+
+    // （showList関数のリスト生成ループ内）
+html += `
+    <li style="margin-bottom: 5px; border-bottom: 1px solid #eee;">
+        <div style="cursor: pointer; padding: 5px;" 
+             onclick="fillForm('${item.name}', '${item.birth}'); toggleDetail('${detailId}')">
+            <strong>${item.name}</strong> <small>(${item.birth})</small>
+        </div>
+        
+        <!-- ここで定義したスタイルを適用 -->
+        <div id="${detailId}" style="${styles.detailArea}">
+            <div style="margin-bottom: 8px;">
+                ${item.description || "評伝データがありません。"}
+            </div>
+            ${deathInfoText ? `<div style="${styles.deathInfo}">${deathInfoText}</div>` : ""}
+        </div>
+    </li>`;
+});
+    html += `</ul>`;
+    
+    displayArea.innerHTML = html;
+}
+
+/**
+ * 誕生日をフォームに自動入力する関数
+ * @param {string} birthDate - "YYYY-MM-DD" 形式の文字列
+ */
+/**
+ * フォームへの自動入力と算出の実行
+ * @param {string} name - 名前
+ * @param {string} birthDate - "YYYY-MM-DD" 形式
+ */
+function fillForm(name, birthDate) {
+    // 1. 日付をフォームへセット
+    const parts = birthDate.split('-');
+    document.getElementById('year-input').value = parseInt(parts[0], 10);
+    document.getElementById('month-input').value = parseInt(parts[1], 10);
+    document.getElementById('day-input').value = parseInt(parts[2], 10);
+    
+    // 2. メモ欄（またはコメント欄）へ名前をセット
+    const commentInput = document.getElementById('comment-input');
+    if (commentInput) {
+        commentInput.value = name;
+    }
+    
+    // 3. 【重要】履歴取込ボタンと同じ「計算関数」を呼び出す
+    // これにより、算出結果は出るが、履歴の更新処理（保存・移動）は走らない！
+    if (typeof performCalculation === 'function') {
+        performCalculation();
+    }
+}
+
+function toggleDetail(id) {
+    const el = document.getElementById(id);
+    // 他の開いている詳細を閉じる（オプション：1つだけ表示させたい場合）
+    document.querySelectorAll('[id^="detail-"]').forEach(d => {
+        if (d.id !== id) d.style.display = 'none';
+    });
+    // クリックした要素の表示/非表示を切り替え
+    el.style.display = (el.style.display === 'none') ? 'block' : 'none';
 }

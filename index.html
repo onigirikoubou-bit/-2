@@ -146,6 +146,12 @@
     white-space: pre-wrap; /* 改行を保持しつつ、枠に合わせて折り返す */
 }
 
+.left-side {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    flex: 0 0 350px;
+}
 </style>
 
 </head>
@@ -154,7 +160,7 @@
 <h1>算命学・命式算出</h1>
 <div class="top-wrapper" style="display: flex; gap: 40px; align-items: flex-start; margin-bottom: 30px;">
     
-    <div class="left-side" style="display: flex; flex-direction: column; gap: 10px;">
+    <div class="left-side" style="width: 280px !important; min-width: 280px !important; flex: 0 0 200px !important; display: flex; flex-direction: column; gap: 10px;">
         <div class="input-group"><label>西暦年:</label><input type="number" id="year-input" value=""></div>
         <div class="input-group"><label>月:</label><input type="number" id="month-input" min="1" max="12"></div>
         <div class="input-group"><label>日:</label><input type="number" id="day-input" min="1" max="31"></div>
@@ -168,8 +174,22 @@
             </div>
         </div>
     </div>
+<!-- ここに追加 -->
+    <div class="input-group" style="margin-top: 20px;">
+        <div style="margin: 10px 0;">
+            <button onclick="showList('sengoku')">戦国武将</button>
+            <button onclick="showList('edo')">江戸文化人</button>
+            <button onclick="showHistoryList()">過去履歴</button>
+        </div>
+        <!-- リスト表示エリア：幅を親（left-side）に合わせ、高さを固定してスクロールさせる -->
+        <div id="figure-display-area" style="width: 100%; height: 300px; overflow-y: auto; border: 1px solid #ccc; padding: 5px; box-sizing: border-box; background: #fff;">
+            リストを選択してください
+        </div>
+    </div>
 
-    <div class="right-side" style="display: flex; flex-direction: column; gap: 15px;">
+</div>
+
+    <div class="right-side" style="flex: 1; min-width: 0;">
         <button id="calc-btn" style="padding: 10px 20px; font-size: 16px; cursor: pointer; background: #8a1414; color: #fff; border: none; border-radius: 4px;">算出</button>
         
         <div class="input-group">
@@ -220,6 +240,20 @@
     <script src="sekki_data.js"></script>
     <script src="star_tables.js"></script>
     <script src="shugoshin_data.js"></script>
+    
+    <script src="js/sekki_1800_1809.js"></script>
+    <script src="js/sekki_1810_1819.js"></script>
+    <script src="js/sekki_1820_1829.js"></script>
+    <script src="js/sekki_1830_1839.js"></script>
+    <script src="js/sekki_1840_1849.js"></script>
+    <script src="js/sekki_1850_1859.js"></script>
+    <script src="js/sekki_1860_1869.js"></script>
+    <script src="js/sekki_1870_1879.js"></script>
+    <script src="js/sekki_1880_1889.js"></script>
+    <script src="js/sekki_1890_1899.js"></script>
+    <script src="js/sengoku_figures.js"></script>
+    <script src="js/edo_culture_figures.js"></script>
+
     <script src="main.js"></script>
 </body>
 </html>
