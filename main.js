@@ -852,3 +852,112 @@ function getKangoInfo(kan1, kan2) {
     
     return match ? { pairName: match.name, result: match.result } : null;
 }
+
+
+// 戦国武将を表示する関数
+function displaySengoku() {
+    // データが読み込まれているかチェック
+    if (typeof window.SENGOKU_FIGURES_PART1 === 'undefined' || typeof window.SENGOKU_FIGURES_PART2 === 'undefined') {
+        alert("戦国武将のデータがまだ読み込めていません。");
+        return;
+    }
+    const part1 = window.SENGOKU_FIGURES_PART1 || [];
+    const part2 = window.SENGOKU_FIGURES_PART2 || [];
+    renderList(data);
+}
+
+// 江戸文化人を表示する関数
+function displayEdo() {
+    // データが読み込まれているかチェック
+    if (typeof window.EDO_CULTURE_FIGURES === 'undefined') {
+        alert("江戸文化人のデータがまだ読み込めていません。");
+        return;
+    }
+    renderList(window.EDO_CULTURE_FIGURES);
+}
+
+// リストを表示する共通関数
+function renderList(figures) {
+    const area = document.getElementById('figures-display-area');
+    if (!area) return;
+    
+    area.innerHTML = '';
+    
+    // 生年順にソート
+    const sorted = [...figures].sort((a, b) => {
+        // もしデータに birth がない場合に備えての安全策
+        const b1 = new Date(a.birth || "0001-01-01");
+        const b2 = new Date(b.birth || "0001-01-01");
+        return b1 - b2;
+    });
+
+    const ul = document.createElement('ul');
+    sorted.forEach(p => {
+        const li = document.createElement('li');
+        li.textContent = `${p.name}（生年: ${p.birth || '不明'}）`;
+        ul.appendChild(li);
+    });
+    area.appendChild(ul);
+}
+
+// ==========================================
+// 5. 武将・文化人リスト表示機能
+// ==========================================
+function showList(type) {
+    const displayArea = document.getElementById('figure-display-area');
+    if (!displayArea) return;
+    
+    const data = (type === 'sengoku') ? window.SENGOKU_FIGURES : window.EDO_CULTURE_FIGURES;
+    
+    if (!data) {
+        displayArea.innerHTML = "データが読み込めていません。";
+        return;
+    }
+    
+    let html = `<ul style="list-style: none; padding: 0;">`;
+    data.forEach(item => {
+        // --- 没年齢の計算 ---
+        let deathText = "";
+        if (item.birth && item.death) {
+            const b = new Date(item.birth);
+            const d = new Date(item.death);
+            const ageAtDeath = d.getFullYear() - b.getFullYear();
+            // ★右寄せ指定 (text-align: right)
+            deathText = `<div style="font-size:12px; color:#333; text-align: right; margin-top: 2px;">${d.getFullYear()}年 ${ageAtDeath}歳で没。</div>`;
+        }
+        // ------------------
+
+        html += `
+            <li style="margin-bottom:10px; border-bottom:1px solid #ccc; padding:5px;">
+                <div style="font-weight:bold; cursor:pointer; color:blue;" 
+                     onclick="reflectData('${item.name}', '${type}')">
+                    ${item.name}
+                </div>
+                <div style="font-size:14px; margin-top:5px;">
+                    ${item.description || "説明なし"}
+                </div>
+                ${deathText}
+            </li>`;
+    });
+    html += `</ul>`;
+    displayArea.innerHTML = html;
+}
+
+// ★ここが抜けていると Uncaught ReferenceError になります
+function reflectData(name, type) {
+    const data = (type === 'sengoku') ? window.SENGOKU_FIGURES : window.EDO_CULTURE_FIGURES;
+    const item = data.find(i => i.name === name);
+    
+    if (!item || !item.birth) return;
+
+    const parts = item.birth.split('-');
+    document.getElementById('year-input').value = parts[0];
+    document.getElementById('month-input').value = parseInt(parts[1], 10);
+    document.getElementById('day-input').value = parseInt(parts[2], 10);
+    document.getElementById('comment-input').value = item.name;
+
+    if (typeof performCalculation === 'function') {
+        performCalculation();
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
