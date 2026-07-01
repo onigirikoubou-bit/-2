@@ -479,7 +479,7 @@ if (shugoshinArea && shugoshinContent && shugoInfo) {
 
     // 3. 表示の更新
     shugoshinContent.innerHTML = `
-    <div style="font-size: 20px; font-family: '游明朝', 'Yu Mincho', serif;">
+    <div style="font-size: 18px; font-family: '游明朝', 'Yu Mincho', serif;">
         <span style="font-family: '游明朝', 'Yu Mincho', serif;">守護神：</span>
         <span style="font-family: '游ゴシック', 'Yu Gothic', sans-serif; font-weight: 600;">${formatShugoList([shugoInfo.p1, shugoInfo.p2, shugoInfo.p3])}</span><br>
         
