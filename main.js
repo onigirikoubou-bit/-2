@@ -257,8 +257,8 @@ function renderDaiunTable(startAge, baseEto, isForward, nikkan, currentAge) {
             <tr class="${rowClass}">
                 <td>${ageRange}</td>
                 <td style="font-size:22px; font-weight:bold;">${eto}</td>
-                <td style="font-size:18px;">${findJudai(eto[0])}</td>
-                <td style="font-size:18px;">${findJuni(eto[1])}</td>
+                <td style="font-size:20px;">${findJudai(eto[0])}</td>
+                <td style="font-size:20px;">${findJuni(eto[1])}</td>
             </tr>`;
         
         currentIndex = (currentIndex + (isForward ? 1 : -1) + 60) % 60;
@@ -593,8 +593,6 @@ if (shareBtn) {
     const fullResult = `【${commentVal}】\n日時: ${y}/${m}/${d}\n結果: ${result}\n\n[大運表]\n${daiun}`;
     const title = commentVal;
     
-    // 3. 完成した変数を関数に渡す
-    await performCopy(fullResult, title);
 };
 }
 
@@ -706,7 +704,7 @@ async function saveResultHandler() {
     try {
         const canvas = await html2canvas(container, {
             scale: 2,
-            width: 580,
+            width: 590,
             backgroundColor: "#fcfbf9"
         });
 
