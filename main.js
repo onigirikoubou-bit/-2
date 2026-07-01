@@ -905,7 +905,16 @@ function showList(type) {
     const displayArea = document.getElementById('figure-display-area');
     if (!displayArea) return;
     
-    const data = (type === 'sengoku') ? window.SENGOKU_FIGURES : window.EDO_CULTURE_FIGURES;
+    // --- ここから差し替え部分 ---
+    let data;
+    switch(type) {
+        case 'sengoku':     data = window.SENGOKU_FIGURES; break;
+        case 'edo':         data = window.EDO_CULTURE_FIGURES; break;
+        case 'entertainer': data = window.ENTERTAINER_FIGURES; break;
+        case 'contributor': data = window.CONTRIBUTOR_FIGURES; break;
+        case 'shocking':    data = window.SHOCKING_FIGURES; break;
+        default: return;
+    }
     
     if (!data) {
         displayArea.innerHTML = "データが読み込めていません。";
@@ -916,12 +925,14 @@ function showList(type) {
     data.forEach(item => {
         // --- 没年齢の計算 ---
         let deathText = "";
-        if (item.birth && item.death) {
+        const deathYear = new Date(item.death).getFullYear();
+        
+        // 9999年の場合は表示しない
+        if (item.birth && item.death && deathYear < 9999) {
             const b = new Date(item.birth);
             const d = new Date(item.death);
             const ageAtDeath = d.getFullYear() - b.getFullYear();
-            // ★右寄せ指定 (text-align: right)
-            deathText = `<div style="font-size:12px; color:#333; text-align: right; margin-top: 2px;">${d.getFullYear()}年 ${ageAtDeath}歳で没。</div>`;
+            deathText = `<div style="font-size:12px; color:#333; text-align: right; margin-top: 2px;">${deathYear}年 ${ageAtDeath}歳で没。</div>`;
         }
         // ------------------
 
@@ -943,9 +954,16 @@ function showList(type) {
 
 // ★ここが抜けていると Uncaught ReferenceError になります
 function reflectData(name, type) {
-    const data = (type === 'sengoku') ? window.SENGOKU_FIGURES : window.EDO_CULTURE_FIGURES;
-    const item = data.find(i => i.name === name);
+    let data;
+    switch(type) {
+        case 'sengoku':    data = window.SENGOKU_FIGURES; break;
+        case 'edo':        data = window.EDO_CULTURE_FIGURES; break;
+        case 'entertainer': data = window.ENTERTAINER_FIGURES; break;
+        case 'contributor': data = window.CONTRIBUTOR_FIGURES; break;
+        case 'shocking':    data = window.SHOCKING_FIGURES; break;
+    }
     
+    const item = data.find(i => i.name === name);
     if (!item || !item.birth) return;
 
     const parts = item.birth.split('-');
@@ -1006,4 +1024,33 @@ function reflectHistory(index) {
             performCalculation();
         }
     }
+}
+
+function openHelp() {
+    let modal = document.getElementById('help-modal');
+    if (modal) modal.remove();
+
+    modal = document.createElement('div');
+    modal.id = 'help-modal';
+    modal.style.cssText = `
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.5); display: flex; justify-content: center;
+        align-items: center; z-index: 1000;
+    `;
+
+    modal.innerHTML = `
+        <div style="background: white; padding: 20px; border-radius: 8px; width: 80%; max-width: 500px; max-height: 80vh; overflow-y: auto; position: relative;">
+            <h3>使い方</h3>
+            <div id="help-content">
+                <p>・1800-2050年の範囲で算出できます</p>
+                <p>・履歴取込ボタンから直近５件の内容を確認できます</p>
+                <p>・算出ボタンを押すと検索履歴に反映されます</p>
+                <p>・最下部のリスト一覧から、該当項目の命式が確認できます</p>
+                <p>・結果を保存ボタンから、内容の画像がダウンロードできます</p>
+            </div>
+            <button onclick="document.getElementById('help-modal').remove()" style="margin-top: 20px;">閉じる</button>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
 }

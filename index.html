@@ -168,12 +168,59 @@
     }
 }
 
+.header-container {
+    display: flex;
+    align-items: center; /* タイトルとボタンの縦位置を揃える */
+    gap: 10px;           /* タイトルとボタンの間の余白 */
+    padding: 20px;
+}
+
+h1 {
+    margin: 0;           /* デフォルトの余白を消す */
+}
+
+#help-btn {
+    width: 24px;         /* 小さめに */
+    height: 24px;
+    padding: 0;
+    border-radius: 50%;  /* 丸いボタンに */
+    border: 1px solid #999;
+    background: transparent;
+    color: #666;
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    transition: all 0.2s;
+}
+
+#help-btn:hover {
+    background: #eee;
+    color: #333;
+    border-color: #333;
+}
+
+.button-container {
+    display: flex;
+    flex-wrap: wrap;   /* 折り返しを有効にする */
+    gap: 10px;         /* ボタン間の隙間 */
+    margin: 10px 0;
+}
+
+.button-container button {
+    /* 3つ並べるために、100%を3分割して隙間(gap)分を引く */
+    width: calc(33.33% - 10px); 
+    padding: 10px 0;
+    box-sizing: border-box; /* paddingを含めて幅を計算する */
+}
 </style>
 
 </head>
 <body>
 
-<h1>算命学・命式算出</h1>
+<div class="header-container">
+    <h1>算命学・命式算出</h1>
+    <button id="help-btn" onclick="openHelp()">?</button>
+</div>
 <div class="top-wrapper" style="display: flex; gap: 40px; align-items: flex-start; margin-bottom: 30px;">
     
     <div class="left-side" style="width: 280px !important; min-width: 280px !important; flex: 0 0 200px !important; display: flex; flex-direction: column; gap: 10px;">
@@ -243,12 +290,15 @@
 
 <!-- 2. リストエリアを一番下に移動 -->
 <div class="bottom-category-area" style="margin-top: 40px; border-top: 2px solid #ccc; padding-top: 20px; width: 100%;">
-    <div class="input-group">
-        <div style="margin: 10px 0;">
-            <button onclick="showList('sengoku')">戦国武将</button>
-            <button onclick="showList('edo')">江戸文化人</button>
-            <button onclick="showHistoryList()">過去履歴</button>
-        </div>
+    <div class="button-container">
+    <button onclick="showList('sengoku')">戦国武将</button>
+    <button onclick="showList('edo')">江戸文化人</button>
+    <button onclick="showHistoryList()">過去履歴</button>
+    <button onclick="showList('entertainer')">有名芸能人</button>
+    <button onclick="showList('contributor')">日本の偉人</button>
+    <button onclick="showList('shocking')">世・震・人</button>
+</div>
+        
         <div id="figure-display-area" style="width: 60%; height: 300px; overflow-y: auto; border: 1px solid #ccc; padding: 5px; background: #fff;">
             リストを選択してください
         </div>
@@ -271,6 +321,9 @@
     <script src="js/sekki_1890_1899.js"></script>
     <script src="js/sengoku_figures.js"></script>
     <script src="js/edo_culture_figures.js"></script>
+    <script src="js/entertainer.js"></script>
+    <script src="js/contributor.js"></script>
+    <script src="js/shocking.js"></script>
 
     <script src="main.js"></script>
 </body>
