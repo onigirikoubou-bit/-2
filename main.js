@@ -961,3 +961,51 @@ function reflectData(name, type) {
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
+
+// 過去履歴ボタンから呼び出される関数
+function showHistoryList() {
+    // 履歴データの取得
+    const data = localStorage.getItem('searchHistory');
+    const history = data ? JSON.parse(data) : [];
+    
+    // 表示エリアを取得してリスト化
+    const displayArea = document.getElementById('figure-display-area'); // 表示先のID
+    if (!displayArea) return;
+
+    if (history.length === 0) {
+        displayArea.innerHTML = "履歴はありません。";
+        return;
+    }
+
+    let html = `<ul style="list-style: none; padding: 0;">`;
+    history.forEach((h, index) => {
+        html += `
+            <li style="margin-bottom:10px; border-bottom:1px solid #ccc; padding:5px; cursor:pointer;" 
+                onclick='reflectHistory(${index})'>
+                <strong>${h.date}</strong> - ${h.comment || "タイトルなし"}
+            </li>`;
+    });
+    html += `</ul>`;
+    displayArea.innerHTML = html;
+}
+
+// 履歴をクリックした時に値をフォームへ戻す関数
+function reflectHistory(index) {
+    const data = localStorage.getItem('searchHistory');
+    const history = data ? JSON.parse(data) : [];
+    const h = history[index];
+
+    if (h) {
+        // 日付を反映 (例: 1988/6/3 -> 年, 月, 日)
+        const parts = h.date.split('/');
+        document.getElementById('year-input').value = parts[0];
+        document.getElementById('month-input').value = parseInt(parts[1], 10);
+        document.getElementById('day-input').value = parseInt(parts[2], 10);
+        document.getElementById('comment-input').value = h.comment || "";
+
+        // 再計算を実行
+        if (typeof performCalculation === 'function') {
+            performCalculation();
+        }
+    }
+}
