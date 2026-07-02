@@ -119,8 +119,6 @@ const HistoryModule = {
     }
 }; // ← これが唯一の締めくくりです。これより下に「initImportButton」などは置かないでください。
 
-
-
 function setEto(elementId, etoText) {
     const container = document.getElementById(elementId);
     if (!container) return;
@@ -557,6 +555,9 @@ if (shugoshinArea && shugoshinContent && shugoInfo) {
     // 4. 結果の出力
     renderDaiunTable(daiunNen, KANTO_LIST[(KANTO_LIST.indexOf(trueMonthEto) + (isForward ? 1 : -1) + 60) % 60], isForward, nikkan, age);
     document.getElementById('result-area').style.display = 'block';
+
+    showDiagnosis(map);
+
 }
 }
 
@@ -905,16 +906,8 @@ function showList(type) {
     const displayArea = document.getElementById('figure-display-area');
     if (!displayArea) return;
     
-    // --- ここから差し替え部分 ---
-    let data;
-    switch(type) {
-        case 'sengoku':     data = window.SENGOKU_FIGURES; break;
-        case 'edo':         data = window.EDO_CULTURE_FIGURES; break;
-        case 'entertainer': data = window.ENTERTAINER_FIGURES; break;
-        case 'contributor': data = window.CONTRIBUTOR_FIGURES; break;
-        case 'shocking':    data = window.SHOCKING_FIGURES; break;
-        default: return;
-    }
+    // 共通関数でデータを取得
+    const data = getFigureData(type);
     
     if (!data) {
         displayArea.innerHTML = "データが読み込めていません。";
@@ -954,16 +947,10 @@ function showList(type) {
 
 // ★ここが抜けていると Uncaught ReferenceError になります
 function reflectData(name, type) {
-    let data;
-    switch(type) {
-        case 'sengoku':    data = window.SENGOKU_FIGURES; break;
-        case 'edo':        data = window.EDO_CULTURE_FIGURES; break;
-        case 'entertainer': data = window.ENTERTAINER_FIGURES; break;
-        case 'contributor': data = window.CONTRIBUTOR_FIGURES; break;
-        case 'shocking':    data = window.SHOCKING_FIGURES; break;
-    }
+    // 共通関数でデータを取得
+    const data = getFigureData(type);
+    const item = data ? data.find(i => i.name === name) : null;
     
-    const item = data.find(i => i.name === name);
     if (!item || !item.birth) return;
 
     const parts = item.birth.split('-');
@@ -1026,6 +1013,62 @@ function reflectHistory(index) {
     }
 }
 
+// 1. 性格診断を表示する関数
+function showDiagnosis(map) {
+    const diagnosisArea = document.getElementById('diagnosis-area');
+    if (!diagnosisArea) return;
+
+    // mapから各場所の星を取得
+    const 胸 = map['pos-i'];
+    const 右手 = map['pos-b'];
+    const 左手 = map['pos-f'];
+
+    // 1. 基本メッセージ（本質）
+    let message = `
+        <div style="margin-top: 20px; padding: 15px; border: 1px solid #ddd; border-radius: 8px; background: #f9f9f9; font-size: 14px;">
+            <h3 style="margin-top:0; font-size: 16px;">性格診断メッセージ</h3>
+            <p><strong>本質（胸）：</strong> ${胸}のあなたは、${window.STAR_DESCRIPTIONS[胸] || "独特の個性を持っています。"}</p>
+            <p><strong>外面（右手）：</strong> 対外的な顔は${右手}の性質が強く、周囲には活動的で頼れる存在として映っているようです。</p>
+            <p><strong>内面（左手）：</strong> 一方で内面には${左手}を秘めており、自分の中では着実さやこだわりを大切にする一面があります。</p>
+    `;
+
+    // 2. 組み合わせ診断（個別 → グループ → その他）
+    const key = `${右手}_${左手}`; // 個別キー
+    const groupKey = `グループ_${window.STAR_GROUPS[右手]}_${window.STAR_GROUPS[左手]}`; // グループキー
+    
+    let extraMessage = "";
+
+    // 【優先順位1：個別データが存在するか】
+    if (window.COMBINATION_DESCRIPTIONS[key]) {
+        extraMessage = window.COMBINATION_DESCRIPTIONS[key];
+    } 
+    // 【優先順位2：グループデータが存在するか】
+    else if (window.COMBINATION_DESCRIPTIONS[groupKey]) {
+        extraMessage = window.COMBINATION_DESCRIPTIONS[groupKey];
+    } 
+    // 【優先順位3：どちらでもない場合（念のための補完）】
+    else if (右手 === 左手) {
+        extraMessage = "外面と内面が同じ星で、裏表のない一貫した誠実さが魅力です。";
+    } else {
+        extraMessage = "外面と内面で異なる魅力を持っており、周囲を飽きさせない不思議なオーラをお持ちです。";
+    }
+
+    // 3. 表示の組み立て
+    diagnosisArea.innerHTML = message + `<p><strong>【深掘り分析】</strong>${extraMessage}</p></div>`;
+}
+
+// カテゴリ判定の共通関数
+function getFigureData(type) {
+    switch(type) {
+        case 'sengoku':    return window.SENGOKU_FIGURES;
+        case 'edo':        return window.EDO_CULTURE_FIGURES;
+        case 'entertainer': return window.ENTERTAINER_FIGURES;
+        case 'contributor': return window.CONTRIBUTOR_FIGURES;
+        case 'shocking':    return window.SHOCKING_FIGURES;
+        default:           return null;
+    }
+}
+
 function openHelp() {
     let modal = document.getElementById('help-modal');
     if (modal) modal.remove();
@@ -1046,6 +1089,7 @@ function openHelp() {
                 <p>・履歴取込ボタンから直近５件の内容を確認できます</p>
                 <p>・算出ボタンを押すと検索履歴に反映されます</p>
                 <p>・最下部のリスト一覧から、該当項目の命式が確認できます</p>
+                <p>・歴史上の人物については、史書等で生年月日が確認できる人に限定しています</p>
                 <p>・結果を保存ボタンから、内容の画像がダウンロードできます</p>
             </div>
             <button onclick="document.getElementById('help-modal').remove()" style="margin-top: 20px;">閉じる</button>
