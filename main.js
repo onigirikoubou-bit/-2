@@ -916,31 +916,41 @@ function showList(type) {
     
     let html = `<ul style="list-style: none; padding: 0;">`;
     data.forEach(item => {
-        // --- 没年齢の計算 ---
-        let deathText = "";
-        const deathYear = new Date(item.death).getFullYear();
-        
-        // 9999年の場合は表示しない
-        if (item.birth && item.death && deathYear < 9999) {
-            const b = new Date(item.birth);
-            const d = new Date(item.death);
-            const ageAtDeath = d.getFullYear() - b.getFullYear();
-            deathText = `<div style="font-size:12px; color:#333; text-align: right; margin-top: 2px;">${deathYear}年 ${ageAtDeath}歳で没。</div>`;
-        }
-        // ------------------
+    // --- 1. 見出しや空行の判定 ---
+    // もし name に "---" が含まれていたら見出しとして表示
+    if (item.name.includes("---")) {
+        html += `<li style="padding: 10px 0; font-weight: bold; color: #555; border-bottom: 2px solid #ddd;">${item.name}</li>`;
+        return; // 次のデータへスキップ
+    }
+    // もし name が空白だけなら空行として表示
+    if (item.name.trim() === "") {
+        html += `<li style="height: 20px;"></li>`;
+        return;
+    }
 
-        html += `
-            <li style="margin-bottom:10px; border-bottom:1px solid #ccc; padding:5px;">
-                <div style="font-weight:bold; cursor:pointer; color:blue;" 
-                     onclick="reflectData('${item.name}', '${type}')">
-                    ${item.name}
-                </div>
-                <div style="font-size:14px; margin-top:5px;">
-                    ${item.description || "説明なし"}
-                </div>
-                ${deathText}
-            </li>`;
-    });
+    // --- 2. 通常の人物データ表示（既存の処理） ---
+    let deathText = "";
+    // (以下、既存の没年齢計算の処理...)
+    const deathYear = new Date(item.death).getFullYear();
+    if (item.birth && item.death && deathYear < 9999) {
+        const b = new Date(item.birth);
+        const d = new Date(item.death);
+        const ageAtDeath = d.getFullYear() - b.getFullYear();
+        deathText = `<div style="font-size:12px; color:#333; text-align: right; margin-top: 2px;">${deathYear}年 ${ageAtDeath}歳で没。</div>`;
+    }
+
+    html += `
+        <li style="margin-bottom:10px; border-bottom:1px solid #ccc; padding:5px;">
+            <div style="font-weight:bold; cursor:pointer; color:blue;" 
+                 onclick="reflectData('${item.name}', '${type}')">
+                ${item.name}
+            </div>
+            <div style="font-size:14px; margin-top:5px;">
+                ${item.description || "説明なし"}
+            </div>
+            ${deathText}
+        </li>`;
+});
     html += `</ul>`;
     displayArea.innerHTML = html;
 }
@@ -1065,6 +1075,8 @@ function getFigureData(type) {
         case 'entertainer': return window.ENTERTAINER_FIGURES;
         case 'contributor': return window.CONTRIBUTOR_FIGURES;
         case 'shocking':    return window.SHOCKING_FIGURES;
+        case 'royal_figures':    return window.ROYAL_FIGURES;
+        case 'prime_ministers':    return window.PRIME_MINISTERS;
         default:           return null;
     }
 }
