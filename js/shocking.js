@@ -16,6 +16,9 @@ window.SHOCKING_FIGURES = [
     { "name": "宮崎勤", "birth": "1962-08-21", "death": "2008-06-17", "description": "連続幼女誘拐殺人犯。" },
     { "name": "宮崎学", "birth": "1945-10-24", "death": "2022-03-30", "description": "作家、元グリコ森永事件関連。" },
     { "name": "山口二矢", "birth": "1942-02-22", "death": "1960-11-02", "description": "浅沼稲次郎刺殺事件。" },
+
+    { "name": " ", "birth": "", "death": "", "description": "" },
+    { "name": "--- オウム真理教関連 ---", "birth": "", "death": "", "description": "" },
     { "name": "麻原彰晃・松本智津夫", "birth": "1955-03-02", "death": "2018-07-06", "description": "オウム教団教祖。" },
     { "name": "石井久子", "birth": "1958-01-01", "death": "9999-12-31", "description": "オウム教団幹部。" },
     { "name": "井上嘉浩", "birth": "1969-12-28", "death": "2018-07-06", "description": "オウム教団幹部。" },
