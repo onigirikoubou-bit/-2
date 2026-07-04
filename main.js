@@ -1112,17 +1112,17 @@ function openHelp() {
 }
 
 function checkInput(current, nextId, maxLength) {
-    // 1. 入力値のクリーニング（数字以外を除去）
+    // 1. 数字以外を削除
     current.value = current.value.replace(/[^0-9]/g, '');
 
-    // 2. スマホで不安定な場合のための少しの遅延処理
-    // setTimeoutを挟むことで、OSのキーボード入力完了イベントと競合するのを防ぎます
-    if (String(current.value).length >= maxLength) {
+    // 2. 指定桁数に達したら次へ移動
+    if (current.value.length >= maxLength) {
+        // スマホでの誤作動を防ぐため、100ミリ秒後に移動させる
         setTimeout(function() {
             const nextField = document.getElementById(nextId);
             if (nextField) {
                 nextField.focus();
             }
-        }, 100); // 0.1秒待機させてからフォーカスを移す
+        }, 100);
     }
 }

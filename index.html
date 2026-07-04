@@ -224,18 +224,23 @@ h1 {
 <div class="top-wrapper" style="display: flex; gap: 40px; align-items: flex-start; margin-bottom: 30px;">
     
     <div class="left-side" style="width: 280px !important; min-width: 280px !important; flex: 0 0 200px !important; display: flex; flex-direction: column; gap: 10px;">
-    <div class="input-group">
-        <label>西暦年:</label>
-        <input type="tel" id="year-input" pattern="\d*" maxlength="4" oninput="checkInput(this, 'month-input', 4)">
-    </div>
-    <div class="input-group">
-        <label>月:</label>
-        <input type="tel" id="month-input" pattern="\d*" min="1" max="12" maxlength="2" oninput="checkInput(this, 'day-input', 2)">
-    </div>
-    <div class="input-group">
-        <label>日:</label>
-        <input type="tel" id="day-input" pattern="\d*" min="1" max="31" maxlength="2">
-    </div>
+    <!-- 各inputに height を明示し、幅の指定をシンプルにします -->
+    <div class="input-group" style="display: flex; align-items: center; gap: 5px;">
+    <label>西暦年:</label>
+    <input type="tel" id="year-input" pattern="\d*" maxlength="4" 
+           style="height: 40px; padding: 5px; font-size: 16px; width: 80px;" 
+           oninput="checkInput(this, 'month-input', 4)">
+</div>
+<div class="input-group" style="display: flex; align-items: center; gap: 5px;">
+    <label>月:</label>
+    <input type="tel" id="month-input" pattern="\d*" maxlength="2" 
+           style="height: 40px; padding: 5px; font-size: 16px; width: 50px;" 
+           oninput="checkInput(this, 'day-input', 2)">
+</div>
+<div class="input-group" style="display: flex; align-items: center; gap: 5px;">
+    <label>日:</label>
+    <input type="tel" id="day-input" pattern="\d*" maxlength="2" 
+           style="height: 40px; padding: 5px; font-size: 16px; width: 50px;">
 </div>
 
         <div class="gender-section">
