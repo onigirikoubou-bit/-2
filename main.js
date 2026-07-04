@@ -1110,3 +1110,19 @@ function openHelp() {
 
     document.body.appendChild(modal);
 }
+
+function checkInput(current, nextId, maxLength) {
+    // 入力された文字を強制的に数字のみにする
+    current.value = current.value.replace(/[^0-9]/g, '');
+
+    // 文字数チェック
+    if (current.value.length >= maxLength) {
+        const nextField = document.getElementById(nextId);
+        if (nextField) {
+            // スマホでのフォーカスを確実にするための小技（setTimeout）
+            setTimeout(() => {
+                nextField.focus();
+            }, 50);
+        }
+    }
+}
