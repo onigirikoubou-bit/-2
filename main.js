@@ -1112,17 +1112,17 @@ function openHelp() {
 }
 
 function checkInput(current, nextId, maxLength) {
-    // 入力された文字を強制的に数字のみにする
+    // 1. 入力値のクリーニング（数字以外を除去）
     current.value = current.value.replace(/[^0-9]/g, '');
 
-    // 文字数チェック
-    if (current.value.length >= maxLength) {
-        const nextField = document.getElementById(nextId);
-        if (nextField) {
-            // スマホでのフォーカスを確実にするための小技（setTimeout）
-            setTimeout(() => {
+    // 2. スマホで不安定な場合のための少しの遅延処理
+    // setTimeoutを挟むことで、OSのキーボード入力完了イベントと競合するのを防ぎます
+    if (String(current.value).length >= maxLength) {
+        setTimeout(function() {
+            const nextField = document.getElementById(nextId);
+            if (nextField) {
                 nextField.focus();
-            }, 50);
-        }
+            }
+        }, 100); // 0.1秒待機させてからフォーカスを移す
     }
 }
