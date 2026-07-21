@@ -1145,6 +1145,51 @@ function toggleAiInput() {
     }
 }
 
+// --- AIへ渡すための命式データを収集する関数 ---
+function collectCurrentMeishikiData() {
+    // 入力値の取得
+    const y = document.getElementById('year-input')?.value || "";
+    const m = document.getElementById('month-input')?.value || "";
+    const d = document.getElementById('day-input')?.value || "";
+    const genderVal = document.querySelector('input[name="gender"]:checked')?.value;
+    const gender = genderVal === 'male' ? '男性' : (genderVal === 'female' ? '女性' : '不明');
+    const age = document.getElementById('age-display')?.innerText || "";
+
+    // 画面に表示されている結果要素からテキストを安全に取得するヘルパー
+    const getText = (id) => document.getElementById(id)?.innerText || "";
+
+    return {
+        birthDate: `${y}年${m}月${d}日`,
+        gender: gender,
+        age: age,
+        // 各種干支
+        eto: {
+            day: getText('day-eto'),
+            month: getText('month-eto'),
+            year: getText('year-eto')
+        },
+        // 天中殺
+        tenchusatsu: {
+            nichi: getText('tenchusatsu-text'),
+            nen: getText('nenkan-tenchu-text')
+        },
+        // 人体図・性格診断等の主要な位置の星
+        jintaizu: {
+            posA: getText('pos-a'), // 主気・全体傾向
+            posB: getText('pos-b'),
+            posC: getText('pos-c'), // 晩年
+            posD: getText('pos-d'), // 腹（主星など）
+            posE: getText('pos-e'), // 中年
+            posF: getText('pos-f'),
+            posG: getText('pos-h'),
+            posH: getText('pos-g'),
+            posI: getText('pos-i')
+        },
+        // 守護神・中殺・位相法などの詳細テキスト
+        shugoshinAndDetails: getText('shugoshin-content')
+    };
+}
+
 // 2. 「AIに鑑定を依頼する」ボタンが押されたときの処理
 async function requestAiConsultation() {
     const menuType = document.getElementById('ai-menu-select').value;
@@ -1185,7 +1230,7 @@ async function requestAiConsultation() {
 
     try {
         // --- Renderサーバーへ通信する処理（フェッチ） ---
-        const response = await fetch('https://あなたのRenderサービス名.onrender.com/api/kantei', {
+        const response = await fetch('https://sanmeigaku-02ci.onrender.com', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -1248,7 +1293,7 @@ async function sendFollowUpMessage() {
 
     try {
         // サーバーへ追加質問を送信
-        const response = await fetch('https://あなたのRenderサービス名.onrender.com/api/chat', {
+        const response = await fetch(' https://sanmeigaku-02ci.onrender.com', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ question: question })
