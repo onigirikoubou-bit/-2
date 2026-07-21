@@ -7,7 +7,7 @@ app.use(cors());
 app.use(express.json());
 
 // Renderの環境変数（GEMINI_API_KEY）からAPIキーを自動読み込み
-const ai = new GoogleGenAI();
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 // 朱学院流のベテラン占い師としての「システムプロンプト（ペルソナ）」
 const SYSTEM_INSTRUCTION = `
