@@ -217,161 +217,172 @@ h1 {
 </head>
 <body>
     <!-- 【ステップ1】アプリ全体を上下分割用に包み込むコンテナの開始 -->
-<div id="app-container" style="display: flex; flex-direction: column; min-height: 100vh; background: #fff;">
+    <div id="app-container" style="display: flex; flex-direction: column; min-height: 100vh; background: #fff;">
 
-    <!-- 【上ペイン】従来のすべてのコンテンツが中に入るエリア（スクロール可能） -->
-    <div id="top-pane" style="padding: 15px; background: #fff; transition: all 0.3s ease;">
+        <!-- 【上ペイン】従来のすべてのコンテンツが中に入るエリア（スクロール可能） -->
+        <div id="top-pane" style="padding: 15px; background: #fff; transition: all 0.3s ease;">
 
-<div class="header-container">
-    <h1>算命学・命式算出</h1>
-    <button id="help-btn" onclick="openHelp()">?</button>
-</div>
-<div class="top-wrapper" style="display: flex; gap: 40px; align-items: flex-start; margin-bottom: 30px;">
-    
-    <div class="left-side" style="width: 280px !important; min-width: 280px !important; flex: 0 0 200px !important; display: flex; flex-direction: column; gap: 10px;">
-    <!-- 各inputに height を明示し、幅の指定をシンプルにします -->
-    <div class="input-group" style="display: flex; align-items: center; gap: 5px;">
-    <label>西暦年:</label>
-    <input type="tel" id="year-input" pattern="\d*" maxlength="4" 
-           style="height: 25px; padding: 5px; font-size: 16px; width: 60px;" 
-           oninput="checkInput(this, 'month-input', 4)">
-</div>
-<div class="input-group" style="display: flex; align-items: center; gap: 5px;">
-    <label>月:</label>
-    <input type="tel" id="month-input" pattern="\d*" maxlength="2" 
-           style="height: 25px; padding: 5px; font-size: 16px; width: 60px;" 
-           oninput="checkInput(this, 'day-input', 2)">
-</div>
-<div class="input-group" style="display: flex; align-items: center; gap: 5px;">
-    <label>日:</label>
-    <input type="tel" id="day-input" pattern="\d*" maxlength="2" 
-           style="height: 25px; padding: 5px; font-size: 16px; width: 60px;">
-</div>
-
-        <div class="gender-section">
-            <div style="font-weight: bold; margin-bottom: 5px;">性別:</div>
-            <div>
-                <input type="radio" id="male" name="gender" value="male" checked> 男
-                <input type="radio" id="female" name="gender" value="female"> 女
-                <span id="age-display" style="margin-left: 10px; font-weight: bold;"></span>
-            </div>
-        </div>
-        </div>
-
-</div>
-
-    <div class="right-side" style="flex: 1; min-width: 0;">
-        <button id="calc-btn" style="padding: 10px 20px; font-size: 16px; cursor: pointer; background: #8a1414; color: #fff; border: none; border-radius: 4px;">算出</button>
-        
-        <div class="input-group">
-            <label>メモ:</label>
-            <textarea id="comment-input" placeholder="コメント入力" rows="2"></textarea>
-        </div>
-        
-        <button id="share-or-copy-btn" style="display: none;">結果を保存</button>
-        
-<div class="history-area" style="flex: 0 0 200px;">
-    <h4>履歴</h4>
-    <div id="history-list"></div>
-    <button id="import-btn" type="button" onclick="HistoryModule.importSelected()"  style="padding: 10px 20px; font-size: 16px; cursor: pointer;"">履歴取込</button>
-</div>
-
-<div id="result-area" style="display: none; display: flex; gap: 40px;">
-    <div class="main-area" style="flex: 2;">
-        <h2 id="display-title"></h2>
-        <table class="meishiki-table">
-                <tr>
-                    <td><div class="pillar-label">天中殺</div><div id="tenchusatsu-text" class="eto-grid eto-small"></div></td>
-                    <td><div class="pillar-label">日</div><div id="day-eto" class="eto-grid eto-large"></div><div id="day-zoukan"></div></td>
-                    <td><div class="pillar-label">月</div><div id="month-eto" class="eto-grid eto-large"></div><div id="month-zoukan"></div></td>
-                    <td><div class="pillar-label">年</div><div id="year-eto" class="eto-grid eto-large"></div><div id="year-zoukan"></div></td>
-                    <td><div class="pillar-label">年干天中</div><div id="nenkan-tenchu-text" class="eto-grid eto-small"></div></td>
-                </tr>
-            </table>
-        </div>
-        <div id="shugoshin-result" style="margin: 10px 0; display: none;">
-                <div id="shugoshin-content" style="font-size: 16px; line-height: 1.6;"></div>
-            </div>
-        <table id="body-map">
-                <tr><td id="pos-a">--</td><td id="pos-h">頭</td><td id="pos-g">初年</td></tr>
-                <tr><td id="pos-b">右手</td><td id="pos-i">胸</td><td id="pos-f">左手</td></tr>
-                <tr><td id="pos-c">晩年</td><td id="pos-d">腹</td><td id="pos-e">中年</td></tr>
-            </table>
-    </div>
-
-    <div id="diagnosis-area"></div>
-
-            <!-- ★【ここに追加】性格診断の下、大運表の上のAI鑑定セクション -->
-        <div class="ai-section" style="margin: 25px 0; padding: 15px; border: 2px solid #2c3e50; border-radius: 8px; background: #fdfdfd; box-sizing: border-box;">
-            <h3 style="margin-top: 0; color: #2c3e50; font-size: 1.1em;">🤖 AIによる鑑定</h3>
-            
-            <div class="form-group" style="margin-bottom: 10px;">
-                <label style="font-weight: bold; font-size: 0.9em; display: block; margin-bottom: 5px;">鑑定内容を選択：</label>
-                <select id="ai-menu-select" onchange="toggleAiInput()" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc; font-size: 0.95em;">
-                    <option value="shukumei">その人の宿命</option>
-                    <option value="this-year">今年の運勢</option>
-                    <option value="next-year">来年の運勢</option>
-                    <option value="compatibility">生年月日から見た相性診断（恋愛・対人関係）</option>
-                    <option value="free">自由入力文による質問</option>
-                </select>
+            <div class="header-container">
+                <h1>算命学・命式算出</h1>
+                <button id="help-btn" onclick="openHelp()">?</button>
             </div>
 
-            <!-- 相性診断用の追加入力欄（初期は非表示） -->
-            <div id="compatibility-input-area" style="display: none; margin-bottom: 10px; padding: 10px; background: #f0f4f8; border-radius: 4px; border: 1px dashed #b0c4de;">
-                <p style="font-size: 0.85em; margin: 0 0 5px 0; color: #333;">お相手の生年月日と性別を入力してください</p>
-                <div style="display: flex; gap: 5px;">
-                    <input type="date" id="partner-birthday" style="flex: 1; padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
-                    <select id="partner-gender" style="padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
-                        <option value="male">男性</option>
-                        <option value="female">女性</option>
-                    </select>
-                </div>
-            </div>
+            <!-- 全体を左右に分けるラッパー -->
+            <div class="top-wrapper" style="display: flex; gap: 40px; align-items: flex-start; margin-bottom: 30px;">
+                
+                <!-- 左側：入力エリアと履歴 -->
+                <div class="left-side" style="width: 280px !important; min-width: 280px !important; flex: 0 0 280px !important; display: flex; flex-direction: column; gap: 15px;">
+                    
+                    <div class="input-group" style="display: flex; align-items: center; gap: 5px;">
+                        <label>西暦年:</label>
+                        <input type="tel" id="year-input" pattern="\d*" maxlength="4" style="height: 25px; padding: 5px; font-size: 16px; width: 60px;" oninput="checkInput(this, 'month-input', 4)">
+                    </div>
+                    <div class="input-group" style="display: flex; align-items: center; gap: 5px;">
+                        <label>月:</label>
+                        <input type="tel" id="month-input" pattern="\d*" maxlength="2" style="height: 25px; padding: 5px; font-size: 16px; width: 60px;" oninput="checkInput(this, 'day-input', 2)">
+                    </div>
+                    <div class="input-group" style="display: flex; align-items: center; gap: 5px;">
+                        <label>日:</label>
+                        <input type="tel" id="day-input" pattern="\d*" maxlength="2" style="height: 25px; padding: 5px; font-size: 16px; width: 60px;">
+                    </div>
 
-            <!-- 自由入力用のテキストエリア（初期は非表示） -->
-            <div id="free-input-area" style="margin-bottom: 10px; display: none;">
-                <textarea id="ai-free-question" placeholder="例：5年以内に転職を考えていますが、いつ頃が良いでしょうか？" style="width: 100%; height: 60px; padding: 8px; border-radius: 4px; border: 1px solid #ccc; box-sizing: border-box; font-size: 0.9em;"></textarea>
-            </div>
+                    <div class="gender-section">
+                        <div style="font-weight: bold; margin-bottom: 5px;">性別:</div>
+                        <div>
+                            <input type="radio" id="male" name="gender" value="male" checked> 男
+                            <input type="radio" id="female" name="gender" value="female"> 女
+                            <span id="age-display" style="margin-left: 10px; font-weight: bold;"></span>
+                        </div>
+                    </div>
 
-            <!-- AI鑑定ボタン -->
-            <button onclick="requestAiConsultation()" style="width: 100%; padding: 12px; background: #2c3e50; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 1em;">
-                AIに鑑定を依頼する
-            </button>
-        </div>
+                    <!-- 履歴エリアを左側にすっきり配置 -->
+                    <div class="history-area">
+                        <h4>履歴</h4>
+                        <div id="history-list"></div>
+                        <button id="import-btn" type="button" onclick="HistoryModule.importSelected()" style="padding: 8px 15px; font-size: 14px; cursor: pointer; margin-top: 5px;">履歴取込</button>
+                    </div>
 
-            
-    <div class="side-area" style="flex: 1;">
-        <h3>大運表</h3>
-        <table class="daiun-table">
-            <thead><tr><th>年齢</th><th width="60px">大運</th><th>十大主星</th><th>十二大従星</th></tr></thead>
-            <tbody id="daiun-table-body"></tbody>
-        </table>
-    </div>
-    </div><!-- /#top-pane の終わり -->
+                </div><!-- /.left-side の終わり -->
+
+                <!-- 右側：算出ボタン・結果・AIセクション・大運表 -->
+                <div class="right-side" style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 15px;">
+                    
+                    <div>
+                        <button id="calc-btn" style="padding: 10px 20px; font-size: 16px; cursor: pointer; background: #8a1414; color: #fff; border: none; border-radius: 4px;">算出</button>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label>メモ:</label>
+                        <textarea id="comment-input" placeholder="コメント入力" rows="2" style="width: 100%;"></textarea>
+                    </div>
+                    
+                    <button id="share-or-copy-btn" style="display: none;">結果を保存</button>
+                    
+                    <!-- 結果表示エリア -->
+                    <div id="result-area" style="display: none; flex-direction: column; gap: 20px;">
+                        <div class="main-area">
+                            <h2 id="display-title"></h2>
+                            <table class="meishiki-table">
+                                <tr>
+                                    <td><div class="pillar-label">天中殺</div><div id="tenchusatsu-text" class="eto-grid eto-small"></div></td>
+                                    <td><div class="pillar-label">日</div><div id="day-eto" class="eto-grid eto-large"></div><div id="day-zoukan"></div></td>
+                                    <td><div class="pillar-label">月</div><div id="month-eto" class="eto-grid eto-large"></div><div id="month-zoukan"></div></td>
+                                    <td><div class="pillar-label">年</div><div id="year-eto" class="eto-grid eto-large"></div><div id="year-zoukan"></div></td>
+                                    <td><div class="pillar-label">年干天中</div><div id="nenkan-tenchu-text" class="eto-grid eto-small"></div></td>
+                                </tr>
+                            </table>
+                        </div>
+
+                        <div id="shugoshin-result" style="margin: 10px 0; display: none;">
+                            <div id="shugoshin-content" style="font-size: 16px; line-height: 1.6;"></div>
+                        </div>
+
+                        <table id="body-map">
+                            <tr><td id="pos-a">--</td><td id="pos-h">頭</td><td id="pos-g">初年</td></tr>
+                            <tr><td id="pos-b">右手</td><td id="pos-i">胸</td><td id="pos-f">左手</td></tr>
+                            <tr><td id="pos-c">晩年</td><td id="pos-d">腹</td><td id="pos-e">中年</td></tr>
+                        </table>
+                    </div>
+
+                    <!-- 性格診断エリア -->
+                    <div id="diagnosis-area"></div>
+
+                    <!-- ★ 性格診断の下、大運表の上のAI鑑定セクション -->
+                    <div class="ai-section" style="margin: 15px 0; padding: 15px; border: 2px solid #2c3e50; border-radius: 8px; background: #fdfdfd; box-sizing: border-box;">
+                        <h3 style="margin-top: 0; color: #2c3e50; font-size: 1.1em;">🤖 AIによる鑑定</h3>
+                        
+                        <div class="form-group" style="margin-bottom: 10px;">
+                            <label style="font-weight: bold; font-size: 0.9em; display: block; margin-bottom: 5px;">鑑定内容を選択：</label>
+                            <select id="ai-menu-select" onchange="toggleAiInput()" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc; font-size: 0.95em;">
+                                <option value="shukumei">その人の宿命</option>
+                                <option value="this-year">今年の運勢</option>
+                                <option value="next-year">来年の運勢</option>
+                                <option value="compatibility">生年月日から見た相性診断（恋愛・対人関係）</option>
+                                <option value="free">自由入力文による質問</option>
+                            </select>
+                        </div>
+
+                        <!-- 相性診断用の追加入力欄（初期は非表示） -->
+                        <div id="compatibility-input-area" style="display: none; margin-bottom: 10px; padding: 10px; background: #f0f4f8; border-radius: 4px; border: 1px dashed #b0c4de;">
+                            <p style="font-size: 0.85em; margin: 0 0 5px 0; color: #333;">お相手の生年月日と性別を入力してください</p>
+                            <div style="display: flex; gap: 5px;">
+                                <input type="date" id="partner-birthday" style="flex: 1; padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
+                                <select id="partner-gender" style="padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
+                                    <option value="male">男性</option>
+                                    <option value="female">女性</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- 自由入力用のテキストエリア（初期は非表示） -->
+                        <div id="free-input-area" style="margin-bottom: 10px; display: none;">
+                            <textarea id="ai-free-question" placeholder="例：5年以内に転職を考えていますが、いつ頃が良いでしょうか？" style="width: 100%; height: 60px; padding: 8px; border-radius: 4px; border: 1px solid #ccc; box-sizing: border-box; font-size: 0.9em;"></textarea>
+                        </div>
+
+                        <!-- AI鑑定ボタン -->
+                        <button onclick="requestAiConsultation()" style="width: 100%; padding: 12px; background: #2c3e50; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 1em;">
+                            AIに鑑定を依頼する
+                        </button>
+                    </div>
+
+                    <!-- 大運表エリア -->
+                    <div class="side-area">
+                        <h3>大運表</h3>
+                        <table class="daiun-table">
+                            <thead><tr><th>年齢</th><th width="60px">大運</th><th>十大主星</th><th>十二大従星</th></tr></thead>
+                            <tbody id="daiun-table-body"></tbody>
+                        </table>
+                    </div>
+
+                </div><!-- /.right-side の終わり -->
+
+            </div><!-- /.top-wrapper の終わり -->
+
+        </div><!-- /#top-pane の終わり -->
 
         <!-- 【下ペイン】AI鑑定結果および追加チャットエリア（最初は非表示） -->
-    <div id="bottom-pane" style="display: none; height: 55vh; border-top: 3px solid #2c3e50; background: #f4f6f8; flex-direction: column; padding: 10px; box-sizing: border-box;">
-        
-        <!-- 下ペインのヘッダー -->
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border-bottom: 1px solid #ddd; padding-bottom: 5px;">
-            <span style="font-weight: bold; color: #2c3e50; font-size: 0.95em;">💬 AI鑑定結果・チャット</span>
-            <button onclick="closeAIChat()" style="background: none; border: none; font-size: 1.1em; cursor: pointer; color: #666; padding: 5px;">✖ 閉じる</button>
-        </div>
+        <div id="bottom-pane" style="display: none; height: 55vh; border-top: 3px solid #2c3e50; background: #f4f6f8; flex-direction: column; padding: 10px; box-sizing: border-box;">
+            
+            <!-- 下ペインのヘッダー -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border-bottom: 1px solid #ddd; padding-bottom: 5px;">
+                <span style="font-weight: bold; color: #2c3e50; font-size: 0.95em;">💬 AI鑑定結果・チャット</span>
+                <button onclick="closeAIChat()" style="background: none; border: none; font-size: 1.1em; cursor: pointer; color: #666; padding: 5px;">✖ 閉じる</button>
+            </div>
 
-        <!-- チャットログ・鑑定結果のスクロールエリア -->
-        <div id="ai-chat-messages" style="flex: 1; overflow-y: auto; padding: 5px; display: flex; flex-direction: column; gap: 10px;">
-            <!-- AIからの回答ややり取りがここに流れます -->
-        </div>
+            <!-- チャットログ・鑑定結果のスクロールエリア -->
+            <div id="ai-chat-messages" style="flex: 1; overflow-y: auto; padding: 5px; display: flex; flex-direction: column; gap: 10px;">
+                <!-- AIからの回答ややり取りがここに流れます -->
+            </div>
 
-        <!-- 追加質問の入力エリア -->
-        <div style="display: flex; gap: 5px; margin-top: 8px;">
-            <input type="text" id="ai-followup-input" placeholder="追加で質問する..." style="flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.9em;" onkeypress="if(event.key==='Enter') sendFollowUpMessage()">
-            <button onclick="sendFollowUpMessage()" style="padding: 8px 15px; background: #2c3e50; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">送信</button>
-        </div>
+            <!-- 追加質問の入力エリア -->
+            <div style="display: flex; gap: 5px; margin-top: 8px;">
+                <input type="text" id="ai-followup-input" placeholder="追加で質問する..." style="flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.9em;" onkeypress="if(event.key==='Enter') sendFollowUpMessage()">
+                <button onclick="sendFollowUpMessage()" style="padding: 8px 15px; background: #2c3e50; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">送信</button>
+            </div>
 
-    </div><!-- /#bottom-pane の終わり -->
+        </div><!-- /#bottom-pane の終わり -->
 
-</div><!-- /#app-container の終わり -->
+    </div><!-- /#app-container の終わり -->
 
 <!-- 2. リストエリアを一番下に移動 -->
 <div class="bottom-category-area" style="margin-top: 40px; border-top: 2px solid #ccc; padding-top: 20px; width: 100%;">
