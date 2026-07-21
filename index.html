@@ -216,6 +216,11 @@ h1 {
 
 </head>
 <body>
+    <!-- 【ステップ1】アプリ全体を上下分割用に包み込むコンテナの開始 -->
+<div id="app-container" style="display: flex; flex-direction: column; height: 100vh; overflow: hidden;">
+
+    <!-- 【上ペイン】従来のすべてのコンテンツが中に入るエリア（スクロール可能） -->
+    <div id="top-pane" style="flex: 1; overflow-y: auto; padding: 15px; background: #fff; transition: all 0.3s ease;">
 
 <div class="header-container">
     <h1>算命学・命式算出</h1>
@@ -295,6 +300,45 @@ h1 {
     </div>
 
     <div id="diagnosis-area"></div>
+
+            <!-- ★【ここに追加】性格診断の下、大運表の上のAI鑑定セクション -->
+        <div class="ai-section" style="margin: 25px 0; padding: 15px; border: 2px solid #2c3e50; border-radius: 8px; background: #fdfdfd; box-sizing: border-box;">
+            <h3 style="margin-top: 0; color: #2c3e50; font-size: 1.1em;">🤖 AIによる鑑定</h3>
+            
+            <div class="form-group" style="margin-bottom: 10px;">
+                <label style="font-weight: bold; font-size: 0.9em; display: block; margin-bottom: 5px;">鑑定内容を選択：</label>
+                <select id="ai-menu-select" onchange="toggleAiInput()" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc; font-size: 0.95em;">
+                    <option value="shukumei">その人の宿命</option>
+                    <option value="this-year">今年の運勢</option>
+                    <option value="next-year">来年の運勢</option>
+                    <option value="compatibility">生年月日から見た相性診断（恋愛・対人関係）</option>
+                    <option value="free">自由入力文による質問</option>
+                </select>
+            </div>
+
+            <!-- 相性診断用の追加入力欄（初期は非表示） -->
+            <div id="compatibility-input-area" style="display: none; margin-bottom: 10px; padding: 10px; background: #f0f4f8; border-radius: 4px; border: 1px dashed #b0c4de;">
+                <p style="font-size: 0.85em; margin: 0 0 5px 0; color: #333;">お相手の生年月日と性別を入力してください</p>
+                <div style="display: flex; gap: 5px;">
+                    <input type="date" id="partner-birthday" style="flex: 1; padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
+                    <select id="partner-gender" style="padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
+                        <option value="male">男性</option>
+                        <option value="female">女性</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- 自由入力用のテキストエリア（初期は非表示） -->
+            <div id="free-input-area" style="margin-bottom: 10px; display: none;">
+                <textarea id="ai-free-question" placeholder="例：5年以内に転職を考えていますが、いつ頃が良いでしょうか？" style="width: 100%; height: 60px; padding: 8px; border-radius: 4px; border: 1px solid #ccc; box-sizing: border-box; font-size: 0.9em;"></textarea>
+            </div>
+
+            <!-- AI鑑定ボタン -->
+            <button onclick="requestAiConsultation()" style="width: 100%; padding: 12px; background: #2c3e50; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 1em;">
+                AIに鑑定を依頼する
+            </button>
+        </div>
+
             
     <div class="side-area" style="flex: 1;">
         <h3>大運表</h3>
@@ -303,7 +347,31 @@ h1 {
             <tbody id="daiun-table-body"></tbody>
         </table>
     </div>
-</div>
+    </div><!-- /#top-pane の終わり -->
+
+        <!-- 【下ペイン】AI鑑定結果および追加チャットエリア（最初は非表示） -->
+    <div id="bottom-pane" style="display: none; height: 55vh; border-top: 3px solid #2c3e50; background: #f4f6f8; flex-direction: column; padding: 10px; box-sizing: border-box;">
+        
+        <!-- 下ペインのヘッダー -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border-bottom: 1px solid #ddd; padding-bottom: 5px;">
+            <span style="font-weight: bold; color: #2c3e50; font-size: 0.95em;">💬 AI鑑定結果・チャット</span>
+            <button onclick="closeAIChat()" style="background: none; border: none; font-size: 1.1em; cursor: pointer; color: #666; padding: 5px;">✖ 閉じる</button>
+        </div>
+
+        <!-- チャットログ・鑑定結果のスクロールエリア -->
+        <div id="ai-chat-messages" style="flex: 1; overflow-y: auto; padding: 5px; display: flex; flex-direction: column; gap: 10px;">
+            <!-- AIからの回答ややり取りがここに流れます -->
+        </div>
+
+        <!-- 追加質問の入力エリア -->
+        <div style="display: flex; gap: 5px; margin-top: 8px;">
+            <input type="text" id="ai-followup-input" placeholder="追加で質問する..." style="flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.9em;" onkeypress="if(event.key==='Enter') sendFollowUpMessage()">
+            <button onclick="sendFollowUpMessage()" style="padding: 8px 15px; background: #2c3e50; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">送信</button>
+        </div>
+
+    </div><!-- /#bottom-pane の終わり -->
+
+</div><!-- /#app-container の終わり -->
 
 <!-- 2. リストエリアを一番下に移動 -->
 <div class="bottom-category-area" style="margin-top: 40px; border-top: 2px solid #ccc; padding-top: 20px; width: 100%;">

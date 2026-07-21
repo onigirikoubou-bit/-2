@@ -1126,3 +1126,138 @@ function checkInput(current, nextId, maxLength) {
         }, 100);
     }
 }
+
+// 1. AIメニューの選択肢に応じた入力欄の切り替え
+function toggleAiInput() {
+    const select = document.getElementById('ai-menu-select');
+    const compArea = document.getElementById('compatibility-input-area');
+    const freeArea = document.getElementById('free-input-area');
+
+    // 一旦両方隠す
+    compArea.style.display = 'none';
+    freeArea.style.display = 'none';
+
+    // 選択された項目に応じて表示
+    if (select.value === 'compatibility') {
+        compArea.style.display = 'block';
+    } else if (select.value === 'free') {
+        freeArea.style.display = 'block';
+    }
+}
+
+// 2. 「AIに鑑定を依頼する」ボタンが押されたときの処理
+async function requestAiConsultation() {
+    const menuType = document.getElementById('ai-menu-select').value;
+    
+    // --- 既存の計算結果（命式データ）をmain.jsから取得する処理 ---
+    // ※お手元のコードで保持している変数やオブジェクト名に合わせて適宜書き換えてください
+    const meishikiData = collectCurrentMeishikiData(); 
+
+    // 追加情報の取得（相性用、自由入力用）
+    let additionalInfo = {};
+    if (menuType === 'compatibility') {
+        additionalInfo.partnerBirthday = document.getElementById('partner-birthday').value;
+        additionalInfo.partnerGender = document.getElementById('partner-gender').value;
+        if (!additionalInfo.partnerBirthday) {
+            alert('お相手の生年月日を入力してください。');
+            return;
+        }
+    } else if (menuType === 'free') {
+        additionalInfo.freeQuestion = document.getElementById('ai-free-question').value;
+        if (!additionalInfo.freeQuestion) {
+            alert('質問内容を入力してください。');
+            return;
+        }
+    }
+
+    // --- UIを上下分割モードに切り替え ---
+    const topPane = document.getElementById('top-pane');
+    const bottomPane = document.getElementById('bottom-pane');
+    
+    bottomPane.style.display = 'flex';
+    topPane.style.maxHeight = '45vh'; // 上半分をコンパクトに固定してスクロール可能に
+
+    // チャットエリアに「鑑定中...」のメッセージを表示
+    const chatContainer = document.getElementById('ai-chat-messages');
+    chatContainer.innerHTML = `<div style="background: #fff; padding: 10px; border-radius: 8px; border: 1px solid #ddd; font-size: 0.9em;">🔮 朱学院流ベテラン占い師が命式を読み解いています...少々お待ちください。</div>`;
+
+    try {
+        // --- Renderサーバーへ通信する処理（フェッチ） ---
+        const response = await fetch('https://あなたのRenderサービス名.onrender.com/api/kantei', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                menuType: menuType,
+                meishikiData: meishikiData,
+                additionalInfo: additionalInfo
+            })
+        });
+
+        const data = await response.json();
+
+        // 鑑定結果をチャットエリアに表示
+        chatContainer.innerHTML = `
+            <div style="background: #fff; padding: 12px; border-radius: 8px; border: 1px solid #bce8f1; font-size: 0.9em; line-height: 1.5;">
+                <strong>【AI鑑定結果】</strong><br>
+                ${data.result.replace(/\n/g, '<br>')}
+            </div>
+        `;
+    } catch (error) {
+        console.error(error);
+        chatContainer.innerHTML = `<div style="background: #f2dede; color: #a94442; padding: 10px; border-radius: 8px; font-size: 0.9em;">通信エラーが発生しました。時間をおいて再度お試しください。</div>`;
+    }
+}
+
+// 3. チャットを閉じて元の全画面に戻す場合
+function closeAIChat() {
+    document.getElementById('bottom-pane').style.display = 'none';
+    document.getElementById('top-pane').style.maxHeight = 'none';
+}
+
+// 4. 追い質問（追加チャット）の送信処理
+async function sendFollowUpMessage() {
+    const input = document.getElementById('ai-followup-input');
+    const question = input.value.trim();
+    if (!question) return;
+
+    const chatContainer = document.getElementById('ai-chat-messages');
+
+    // ユーザーの質問を吹き出しとして追加
+    chatContainer.innerHTML += `
+        <div style="background: #e2e8f0; padding: 10px; border-radius: 8px; align-self: flex-end; max-width: 85%; font-size: 0.9em;">
+            ${question}
+        </div>
+    `;
+    input.value = '';
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+
+    // AIからの返信用のプレースホルダーを追加
+    const loadingId = 'loading-' + Date.now();
+    chatContainer.innerHTML += `
+        <div id="${loadingId}" style="background: #fff; padding: 10px; border-radius: 8px; border: 1px solid #ddd; font-size: 0.9em;">
+            考え中...
+        </div>
+    `;
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+
+    try {
+        // サーバーへ追加質問を送信
+        const response = await fetch('https://あなたのRenderサービス名.onrender.com/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ question: question })
+        });
+        const data = await response.json();
+
+        // プレースホルダーを実際の回答に書き換え
+        document.getElementById(loadingId).outerHTML = `
+            <div style="background: #fff; padding: 12px; border-radius: 8px; border: 1px solid #bce8f1; font-size: 0.9em; line-height: 1.5;">
+                ${data.result.replace(/\n/g, '<br>')}
+            </div>
+        `;
+    } catch (error) {
+        document.getElementById(loadingId).outerHTML = `<div style="color: red; font-size: 0.9em;">エラーが発生しました。</div>`;
+    }
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+}
+
