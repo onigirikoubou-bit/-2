@@ -1,3 +1,220 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>算命学鑑定ツール</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        /* --- ここに既存のCSSを維持 --- */
+        body { font-family: "Times New Roman", "Yu Mincho", "游明朝", serif; padding: 20px; max-width: 600px; margin: 0 auto; background-color: #fcfbf9; color: #333; }
+        .input-group { margin-bottom: 15px; }
+        label { display: inline-block; width: 80px; font-weight: bold; }
+        input[type="number"] { padding: 6px; width: 80px; font-size: 16px; font-family: inherit; }
+        #calc-btn { padding: 10px 20px; font-size: 16px; cursor: pointer; background: #8a1414; color: #fff; border: none; border-radius: 4px; margin-top: 10px; margin-bottom: 30px; }
+        /* メモ入力欄のスタイル */
+#comment-input {
+    height: 60px;        /* 高さ（ご希望の3倍程度） */
+    width: 80%;
+    padding: 10px;       /* 内側の余白 */
+    font-size: 16px;     /* 文字サイズ */
+    vertical-align: top; /* 上揃え */
+}
+
+        .meishiki-table { border-collapse: collapse; margin-bottom: 20px; }
+        .meishiki-table td { vertical-align: top; padding: 0 15px; border-right: 1px dashed #ccc; text-align: center; font-size: 16px; }
+        .meishiki-table td:last-child { border-right: none; }
+        .pillar-label { font-size: 14px; font-weight: bold; margin-bottom: 5px; }
+        .eto-text { writing-mode: vertical-rl; text-orientation: upright; font-size: 28px; font-weight: bold; letter-spacing: 5px; line-height: 1.5; display: inline-block; }
+        .eto-text-small { writing-mode: vertical-rl; text-orientation: upright; font-size: 22px; font-weight: bold; letter-spacing: 5px; line-height: 1.5; display: inline-block; color: #555; }
+        
+        #body-map { border-collapse: collapse; margin-top: 20px; table-layout: fixed; }
+        #body-map td { font-size: 24px !important; text-align: center; vertical-align: middle; padding: 20px; width: 60px; height: 60px; border: 1px solid #000; }
+        #pos-h { border-top: none !important; }
+        #pos-i { border: none !important; }
+        #pos-e { border: none !important; }
+        #pos-b { border-left: none !important; }
+        #pos-d { border-bottom: none !important; }
+        #pos-f { border-right: none !important; }
+        #pos-a, #pos-g, #pos-c { border: none !important; }
+
+        .daiun-table {
+    border-collapse: collapse;
+    width: 70%;
+    max-width: 560px; /* 少し広げてみます */
+    margin-top: 20px;
+    table-layout: auto; /* 自動レイアウト */
+}
+
+.daiun-table th, .daiun-table td {
+    padding: 8px; /* パディングを少し減らしてスペースを確保 */
+    border: 1px solid #ccc;
+    text-align: center;
+    font-family: sans-serif; /* テストのため一度 sans-serif に変更して挙動を確認 */
+    white-space: nowrap;    /* ★重要：改行を禁止して横並びを強制します */
+    font-family: "Yu Mincho", "游明朝", serif !important;
+    font-size: 14px;        /* 少し小さくして収まりを良くします */
+}
+
+
+   /* 干支表示エリアの強制縦並び (最強設定) */
+.eto-grid {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    
+    font-size: 28px !important;
+    font-weight: bold !important;
+    line-height: 1.2 !important;
+    height: 75px !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    white-space: nowrap !important;
+}
+
+.eto-grid-small {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 20px !important; /* 少し小さめに設定 */
+    font-weight: bold !important;
+    height: 60px !important;
+    margin: 0 auto !important;
+}
+
+/* 干支の1文字ずつ(span)の設定 */
+.eto-grid span {
+    display: block !important;
+    font-size: 28px !important;
+    font-weight: bold !important;
+    color: inherit; /* 文字色が親要素とずれるのを防ぐ */
+}
+/* ★「小さいサイズ」専用の指定（これだけを追加） */
+.eto-small span {
+    font-size: 20px !important; /* 小さくしたいサイズ */
+    font-weight: bold !important;
+    line-height: 1.2 !important;
+}
+        
+        /* 1. 履歴リストの親要素 */
+#history-list {
+    margin: 0;
+    padding: 0;
+    display: block;
+    max-height: 400px; 
+    overflow-y: auto;
+}
+
+/* 2. 履歴アイテム（統合しました） */
+.history-item {
+    display: flex;
+    align-items: center;
+    font-size: 14px;
+    margin-bottom: 5px;      /* 2px〜5pxの間で調整してください */
+    padding-bottom: 2px;
+    border-bottom: 1px dashed #ccc;
+    white-space: nowrap;      /* 改行を防ぐ */
+}
+
+/* 3. アイテム内のラベル */
+.history-item label {
+    display: inline-block !important; /* 必須 */
+    width: 150px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+
+/* 4. その他必要なスタイル */
+.input-cell {
+    text-align: center;
+}
+
+.current-age-row {
+    color: red !important;
+    font-weight: bold !important;
+}
+
+#comment-input {
+    width: 100%;           /* 幅を枠いっぱいに */
+    word-wrap: break-word; /* 長い単語でも折り返す */
+    word-break: break-all; /* 強制的に改行 */
+    white-space: pre-wrap; /* 改行を保持しつつ、枠に合わせて折り返す */
+}
+
+.left-side {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    flex: 0 0 350px;
+}
+
+@media (max-width: 600px) {
+    .top-wrapper {
+        flex-direction: column !important; /* スマホでは縦並びに */
+    }
+    .left-side, .right-side {
+        width: 100% !important;
+        flex: 0 0 100% !important;
+    }
+    /* ボタンを押しやすくする */
+    .category-buttons button, .bottom-category-area button {
+        padding: 10px;
+        margin: 5px;
+    }
+}
+
+.header-container {
+    display: flex;
+    align-items: center; /* タイトルとボタンの縦位置を揃える */
+    gap: 10px;           /* タイトルとボタンの間の余白 */
+    padding: 20px;
+}
+
+h1 {
+    margin: 0;           /* デフォルトの余白を消す */
+}
+
+#help-btn {
+    width: 24px;         /* 小さめに */
+    height: 24px;
+    padding: 0;
+    border-radius: 50%;  /* 丸いボタンに */
+    border: 1px solid #999;
+    background: transparent;
+    color: #666;
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    transition: all 0.2s;
+}
+
+#help-btn:hover {
+    background: #eee;
+    color: #333;
+    border-color: #333;
+}
+
+.button-container {
+    display: flex;
+    flex-wrap: wrap;   /* 折り返しを有効にする */
+    gap: 10px;         /* ボタン間の隙間 */
+    margin: 10px 0;
+}
+
+.button-container button {
+    /* 3つ並べるために、100%を3分割して隙間(gap)分を引く */
+    width: calc(33.33% - 10px); 
+    padding: 10px 0;
+    box-sizing: border-box; /* paddingを含めて幅を計算する */
+}
+</style>
+
+</head>
 <body>
     <!-- 【ステップ1】アプリ全体を上下分割用に包み込むコンテナの開始 -->
     <div id="app-container" style="display: flex; flex-direction: column; min-height: 100vh; background: #fff;">
@@ -210,5 +427,6 @@
     <script src="js/diagnosis.js"></script>
     <script src="js/royal_figures.js"></script>
     <script src="js/prime_ministers.js"></script>
+
     <script src="main.js"></script>
 </body>
