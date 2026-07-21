@@ -1175,7 +1175,9 @@ async function requestAiConsultation() {
     const bottomPane = document.getElementById('bottom-pane');
     
     bottomPane.style.display = 'flex';
-    topPane.style.maxHeight = '45vh'; // 上半分をコンパクトに固定してスクロール可能に
+    // ★ここで初めて上ペインに高さ制限とスクロールをかけ、見やすく固定する
+    topPane.style.maxHeight = '40vh'; 
+    topPane.style.overflowY = 'auto';
 
     // チャットエリアに「鑑定中...」のメッセージを表示
     const chatContainer = document.getElementById('ai-chat-messages');
@@ -1208,10 +1210,14 @@ async function requestAiConsultation() {
     }
 }
 
-// 3. チャットを閉じて元の全画面に戻す場合
+// 閉じるボタンの処理
 function closeAIChat() {
+    const topPane = document.getElementById('top-pane');
     document.getElementById('bottom-pane').style.display = 'none';
-    document.getElementById('top-pane').style.maxHeight = 'none';
+    
+    // 制限を解除して元のフル画面に戻す
+    topPane.style.maxHeight = 'none';
+    topPane.style.overflowY = 'visible';
 }
 
 // 4. 追い質問（追加チャット）の送信処理
