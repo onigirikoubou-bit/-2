@@ -1230,7 +1230,7 @@ async function requestAiConsultation() {
 
     try {
         // --- Renderサーバーへ通信する処理（フェッチ） ---
-        const response = await fetch('https://sanmeigaku-02ci.onrender.com', {
+        const response = await fetch('https://sanmeigaku-02ci.onrender.com/api/kantei', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -1293,7 +1293,7 @@ async function sendFollowUpMessage() {
 
     try {
         // サーバーへ追加質問を送信
-        const response = await fetch(' https://sanmeigaku-02ci.onrender.com', {
+        const response = await fetch(' https://sanmeigaku-02ci.onrender.com/api/kantei', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ question: question })
