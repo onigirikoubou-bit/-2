@@ -467,14 +467,6 @@ if (shugoshinArea && shugoshinContent && shugoInfo) {
     if (chusatsuData.ijoCount > 0) msgs.push(`異常干支(${chusatsuData.ijoCount}個)`);
 
 
-// 3支の判定表（位相法2 - 三合会局・半会・方三位）
-// const ishou3Map = [
-//     {branch: "子", set: ["申", "辰"], type: "三合会局"},
-//     {branch: "子", set: ["申", "辰"], type: "半会"}, // 簡略化のため条件は調整が必要
-//     // ...必要に応じてここに3支の組み合わせデータを追加
-// ];
-
-
     // 3. 表示の更新
     shugoshinContent.innerHTML = `
     <div style="font-size: 18px; font-family: '游明朝', 'Yu Mincho', serif;">
@@ -557,6 +549,12 @@ if (shugoshinArea && shugoshinContent && shugoInfo) {
     document.getElementById('result-area').style.display = 'block';
 
     showDiagnosis(map);
+
+    // ※ `resultData`（または実際に計算結果が入っている変数名）を丸ごと保存します
+const resultData = collectCurrentMeishikiData(); // または計算済みのオブジェクト
+// ★ 計算済みのオブジェクトをまるごとローカルストレージに保存
+localStorage.setItem('sanmeigaku_previous_meishiki', JSON.stringify(resultData));
+
 
 }
 }
@@ -1197,81 +1195,83 @@ function collectCurrentMeishikiData() {
 }
 
 // 2. 「AIに鑑定を依頼する」ボタンが押されたときの処理
-// 2. 「AIに鑑定を依頼する」ボタンが押されたときの処理
 async function requestAiConsultation() {
     const menuType = document.getElementById('ai-menu-select').value;
     
-    // --- 1人目（相談者）の計算結果（命式データ）を取得 ---
+    // --- 1人目（相談者）の計算結果を取得 ---
     const meishikiData = collectCurrentMeishikiData(); 
 
-    // 追加情報の取得
+    if (!meishikiData) {
+        alert('まずは命式を算出してください。');
+        return;
+    }
+
     let additionalInfo = {};
     let partnerMeishikiData = null; 
 
-    if (menuType === 'compatibility') {
-        // ★ あらかじめ算出して保持しておいた2人目のデータをここで代入する
-        // （※2人目の計算結果を保存している変数名が異なる場合は、ご自身の変数名に合わせてください）
-        partnerMeishikiData = window.savedPartnerMeishikiData || window.partnerMeishikiData || null;
+    // --- 相性診断の場合の処理 ---
+    if (menuType && menuType.includes('compatibility')) {
+        // ★ ローカルストレージから「直前の計算済みデータ」を引っ張る
+        const savedData = localStorage.getItem('sanmeigaku_previous_meishiki');
+        
+        if (savedData) {
+            try {
+                partnerMeishikiData = JSON.parse(savedData);
+            } catch (e) {
+                console.error("保存データのパースに失敗しました:", e);
+            }
+        }
 
+        // もしデータがなければ（2人分の算出がされていない場合）
         if (!partnerMeishikiData) {
-            alert('お相手の命式データが算出されていません。先に「2人目の算出」を行ってください。');
+            alert('お相手の命式データが見つかりません。お手数ですが、別の方の生年月日を入力して算出してしてから再度お試しください。');
             return;
         }
 
     } else if (menuType === 'free') {
-        additionalInfo.freeQuestion = document.getElementById('ai-free-question').value;
+        additionalInfo.freeQuestion = document.getElementById('ai-free-question')?.value || '';
         if (!additionalInfo.freeQuestion) {
             alert('質問内容を入力してください。');
             return;
         }
     }
 
-    // --- ★これまでのチャット履歴を画面から収集する処理 ---
-    const chatHistory = [];
-    const chatContainer = document.getElementById('ai-chat-messages');
-    const messageElements = chatContainer.querySelectorAll('.chat-message'); // または対応するセレクタ
-    // ※もし独自の関数でログ管理していればその配列を渡してもOKです
-    
-    // --- UIを上下分割モードに切り替え ---
-    const topPane = document.getElementById('top-pane');
-    const bottomPane = document.getElementById('bottom-pane');
-    
-    bottomPane.style.display = 'flex';
-    topPane.style.maxHeight = '40vh'; 
-    topPane.style.overflowY = 'auto';
-
     // チャットエリアに「鑑定中...」のメッセージを表示
-    chatContainer.innerHTML = `<div style="background: #fff; padding: 10px; border-radius: 8px; border: 1px solid #ddd; font-size: 0.9em;">🔮 朱学院流ベテラン占い師が命式を読み解いています...少々お待ちください。</div>`;
+    const chatContainer = document.getElementById('chat-container'); // ※お使いのIDに合わせてください
+    if (chatContainer) {
+        chatContainer.innerHTML = `<div style="background: #fff; padding: 10px; border-radius: 8px; border: 1px solid #ddd; font-size: 0.9em;">🔮 朱学院流ベテラン占い師が命式を読み解いています...少々お待ちください。</div>`;
+    }
+
+    // デバッグ用ログ（送信内容の確認）
+    console.log("=== 【AI鑑定送信データ確認】 ===");
+    console.log("menuType:", menuType);
+    console.log("meishikiData (1人目):", meishikiData);
+    console.log("partnerMeishikiData (2人目):", partnerMeishikiData);
+    console.log("================================");
 
     try {
-        // --- Renderサーバーへ通信する処理（命式・お相手データ・チャット履歴を同封） ---
         const response = await fetch('https://sanmeigaku-02ci.onrender.com/api/kantei', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 menuType: menuType,
                 meishikiData: meishikiData,
-                partnerMeishikiData: partnerMeishikiData, 
+                partnerMeishikiData: partnerMeishikiData, // ★ 完全なオブジェクトがここに送られます
                 additionalInfo: additionalInfo,
-                history: chatHistory // ★これまでの会話コンテキストを送信
+                history: typeof chatHistory !== 'undefined' ? chatHistory : []
             })
         });
 
         const data = await response.json();
+        
+        console.log("鑑定結果受信:", data);
+        // （以降、レスポンスを画面に描画する処理へ...）
 
-        // サーバー側の返却キー（result または reply）に対応し、未定義の場合は空文字にする
-        const rawText = data.result || data.reply || '';
-
-        // 鑑定結果をチャットエリアに表示
-        chatContainer.innerHTML = `
-            <div style="background: #fff; padding: 12px; border-radius: 8px; border: 1px solid #bce8f1; font-size: 0.9em; line-height: 1.5;" class="chat-message ai-msg">
-                <strong>【AI鑑定結果】</strong><br>
-                ${rawText.replace(/\n/g, '<br>')}
-            </div>
-        `;
-    } catch (error) {
-        console.error(error);
-        chatContainer.innerHTML = `<div style="background: #f2dede; color: #a94442; padding: 10px; border-radius: 8px; font-size: 0.9em;">通信エラーが発生しました。時間をおいて再度お試しください。</div>`;
+    } catch (e) {
+        console.error("通信エラー:", e);
+        if (chatContainer) {
+            chatContainer.innerHTML = `<div style="color: red; padding: 10px;">通信エラーが発生しました。時間をおいて再度お試しください。</div>`;
+        }
     }
 }
 
