@@ -88,7 +88,7 @@ ${menuDescription}
         // --- AIモデルの呼び出し処理 ---
         const response = await ai.models.generateContent({
             model: 'gemini-3.5-flash',
-            contents: [{ role: 'user', parts: [{ text: menuPrompt }] }],
+            contents: [{ role: 'user', parts: [{ text: prompt }] }],
             config: {
                 systemInstruction: SYSTEM_INSTRUCTION,
                 temperature: 0.7, // 占い師らしい深みのある表現を引き出すための適度な温度感
