@@ -1197,35 +1197,24 @@ function collectCurrentMeishikiData() {
 }
 
 // 2. 「AIに鑑定を依頼する」ボタンが押されたときの処理
+// 2. 「AIに鑑定を依頼する」ボタンが押されたときの処理
 async function requestAiConsultation() {
     const menuType = document.getElementById('ai-menu-select').value;
     
     // --- 1人目（相談者）の計算結果（命式データ）を取得 ---
     const meishikiData = collectCurrentMeishikiData(); 
 
-    // 追加情報の取得と、相性の場合はお相手のデータ算出
+    // 追加情報の取得
     let additionalInfo = {};
     let partnerMeishikiData = null; 
 
     if (menuType === 'compatibility') {
-        const partnerBirthday = document.getElementById('partner-birthday').value;
-        const partnerGender = document.getElementById('partner-gender').value;
+        // ★ あらかじめ算出して保持しておいた2人目のデータをここで代入する
+        // （※2人目の計算結果を保存している変数名が異なる場合は、ご自身の変数名に合わせてください）
+        partnerMeishikiData = window.savedPartnerMeishikiData || window.partnerMeishikiData || null;
 
-        if (!partnerBirthday) {
-            alert('お相手の生年月日を入力してください。');
-            return;
-        }
-
-        additionalInfo.partnerBirthday = partnerBirthday;
-        additionalInfo.partnerGender = partnerGender;
-
-        try {
-            const [pYear, pMonth, pDay] = partnerBirthday.split('-');
-            // ※お使いの環境にある実際の算出関数名に合わせてください
-            partnerMeishikiData = calculateMeishikiForInputs ? calculateMeishikiForInputs(pYear, pMonth, pDay, partnerGender) : null;
-        } catch (e) {
-            console.error("お相手の命式算出に失敗しました:", e);
-            alert("お相手の生年月日の計算でエラーが発生しました。");
+        if (!partnerMeishikiData) {
+            alert('お相手の命式データが算出されていません。先に「2人目の算出」を行ってください。');
             return;
         }
 
