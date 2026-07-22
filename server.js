@@ -23,31 +23,27 @@ const SYSTEM_INSTRUCTION = `
 // ① 初回鑑定のエンドポイント
 app.post('/api/kantei', async (req, res) => {
     try {
-        // ★ partnerMeishikiData も受け取れるように分割代入に追加します
+        // ★ リクエストから 1人目 と 2人目 のデータを両方しっかり受け取る
         const { menuType, meishikiData, partnerMeishikiData, additionalInfo } = req.body;
 
-        // メニューに応じた指示の切り分け
-        let menuPrompt = "";
-        
-        // 相性診断系かどうかの判定
-if (menuType.startsWith('compatibility') && partnerMeishikiData) {
-    
-    // どちらの相性かを判定して指示文を変える
-    let relationFocus = "";
-    if (menuType === 'compatibility-love') {
-        relationFocus = "【視点の指定】恋愛・結婚パートナーとしての相性を重視してください。お互いの惹かれ合う部分、異性としての引き合い、家庭環境や夫婦としての結びつき、愛情表現の違いなどを深く鑑定してください。";
-    } else {
-        relationFocus = "【視点の指定】ビジネスや友人などの一般対人関係としての相性を重視してください。お互いの役割分担、仕事上の相性、コミュニケーションの取り方、衝突しやすいポイントへのアドバイスを深く鑑定してください。";
-    }
+        let prompt = "";
 
-    menuPrompt = `
-    
+        // ★【重要】メニューが「相性診断」系であるかを厳密に判定する
+        if (menuType.startsWith('compatibility')) {
+            
+            // もし2人目のデータが万が一送られてきていない場合の安全ガード
+            if (!partnerMeishikiData) {
+                return res.status(400).json({ error: 'お相手の命式データが見つかりません。先に二人目の算出を行ってください。' });
+            }
+
+            // 相性診断用の専用プロンプト（1人目と2人目を比較させる）
+            prompt = `
+
 以下の2人の算命学のデータを元に、お互いの相性（恋愛・対人関係・精神的な結びつき）を深く鑑定してください。
 合法・散法（位相法）、お互いの守護神や忌神、日干の結びつきなどを総合的に分析してください。
 懸念するべき点があれば遠慮なく指摘してください。陰占と陽占で各々の項目で判定し、点数をつけてください。
 解説の最初に各々の生年月日と性別を明記してください。
 
-${relationFocus}
 
 【1人目（相談者）のデータ】
 - 生年月日: ${meishikiData?.birthDate || '不明'} (${meishikiData?.gender || '不明'})
@@ -56,30 +52,37 @@ ${relationFocus}
 - 守護神: ${JSON.stringify(meishikiData?.shugoshin || '不明')}
 
 【2人目（お相手）のデータ】
-- 生年月日: ${partnerMeishikiData.birthDate || additionalInfo?.partnerBirthday} (${additionalInfo?.partnerGender})
-- 日干支: ${partnerMeishikiData.eto?.day || '不明'} / 月干支: ${partnerMeishikiData.eto?.month || '不明'} / 年干支: ${partnerMeishikiData.eto?.year || '不明'}
-- 天中殺: ${JSON.stringify(partnerMeishikiData.tenchusatsu || '不明')}
-- 守護神: ${JSON.stringify(partnerMeishikiData.shugoshin || '不明')}
+- 生年月日: ${partnerMeishikiData?.birthDate || '不明'} (${partnerMeishikiData?.gender || '不明'})
+- 日干支: ${partnerMeishikiData?.eto?.day || '不明'} / 月干支: ${partnerMeishikiData?.eto?.month || '不明'} / 年干支: ${partnerMeishikiData?.eto?.year || '不明'}
+- 天中殺: ${JSON.stringify(partnerMeishikiData?.tenchusatsu || '不明')}
+- 守護神: ${JSON.stringify(partnerMeishikiData?.shugoshin || '不明')}
 
 `;
         } else {
+            // --- 従来の単体鑑定（宿命、今年、来年、自由入力）の処理 ---
+            let menuDescription = "";
             if (menuType === 'shukumei') {
-            menuPrompt = "この人の本質的な宿命、性格、持って生まれた使命について深く鑑定してください。";
-        } else if (menuType === 'this-year') {
-            menuPrompt = "この人の今年の運勢について、巡ってくる星や位相法（天中殺や刑・害・支合など）を踏まえて詳しく解説してください。";
-        } else if (menuType === 'next-year') {
-            menuPrompt = "この人の来年の運勢について、どのような心構えで過ごすべきかアドバイスを含めて解説してください。";
-        } else if (menuType === 'free') {
-            menuPrompt = `以下のご質問・ご相談内容に対して、朱学院流の算命学の観点から具体的にお答えください。\nご相談内容: ${additionalInfo.freeQuestion}`;
-        }
-            // Geminiに渡す最終的なプロンプト
-        const fullPrompt = `
-【ユーザーの命式データ】
-${JSON.stringify(meishikiData, null, 2)}
+                menuDescription = "この人の本質的な宿命、性格、持って生まれた使命について深く鑑定してください。";
+            } else if (menuType === 'this-year') {
+                menuDescription = "この人の今年の運勢について、巡ってくる星や位相法を踏まえて詳しく解説してください。";
+            } else if (menuType === 'next-year') {
+                menuDescription = "この人の来年の運勢について詳しく解説してください。";
+            } else if (menuType === 'free') {
+                menuDescription = `以下の自由な質問に対して回答してください: ${additionalInfo?.freeQuestion || ''}`;
+            }
+
+            prompt = `
+以下の算命学のデータを基に鑑定を行ってください。
+
+【命式データ】
+- 生年月日: ${meishikiData?.birthDate || '不明'} (${meishikiData?.gender || '不明'})
+- 日干支: ${meishikiData?.eto?.day || '不明'} / 月干支: ${meishikiData?.eto?.month || '不明'} / 年干支: ${meishikiData?.eto?.year || '不明'}
+- 天中殺: ${JSON.stringify(meishikiData?.tenchusatsu || '不明')}
+- 守護神: ${JSON.stringify(meishikiData?.shugoshin || '不明')}
 
 【依頼内容】
-${menuPrompt}
-        `;
+${menuDescription}
+`;
         }
 
         // --- AIモデルの呼び出し処理 ---
