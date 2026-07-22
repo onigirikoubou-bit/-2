@@ -1194,19 +1194,35 @@ function collectCurrentMeishikiData() {
 async function requestAiConsultation() {
     const menuType = document.getElementById('ai-menu-select').value;
     
-    // --- 既存の計算結果（命式データ）をmain.jsから取得する処理 ---
-    // ※お手元のコードで保持している変数やオブジェクト名に合わせて適宜書き換えてください
+    // --- 1人目（相談者）の計算結果（命式データ）を取得 ---
     const meishikiData = collectCurrentMeishikiData(); 
 
-    // 追加情報の取得（相性用、自由入力用）
+    // 追加情報の取得と、相性の場合はお相手のデータ算出
     let additionalInfo = {};
+    let partnerMeishikiData = null; 
+
     if (menuType === 'compatibility') {
-        additionalInfo.partnerBirthday = document.getElementById('partner-birthday').value;
-        additionalInfo.partnerGender = document.getElementById('partner-gender').value;
-        if (!additionalInfo.partnerBirthday) {
+        const partnerBirthday = document.getElementById('partner-birthday').value;
+        const partnerGender = document.getElementById('partner-gender').value;
+
+        if (!partnerBirthday) {
             alert('お相手の生年月日を入力してください。');
             return;
         }
+
+        additionalInfo.partnerBirthday = partnerBirthday;
+        additionalInfo.partnerGender = partnerGender;
+
+        try {
+            const [pYear, pMonth, pDay] = partnerBirthday.split('-');
+            // ※お使いの環境にある実際の算出関数名に合わせてください
+            partnerMeishikiData = calculateMeishikiForInputs ? calculateMeishikiForInputs(pYear, pMonth, pDay, partnerGender) : null;
+        } catch (e) {
+            console.error("お相手の命式算出に失敗しました:", e);
+            alert("お相手の生年月日の計算でエラーが発生しました。");
+            return;
+        }
+
     } else if (menuType === 'free') {
         additionalInfo.freeQuestion = document.getElementById('ai-free-question').value;
         if (!additionalInfo.freeQuestion) {
@@ -1215,28 +1231,34 @@ async function requestAiConsultation() {
         }
     }
 
+    // --- ★これまでのチャット履歴を画面から収集する処理 ---
+    const chatHistory = [];
+    const chatContainer = document.getElementById('ai-chat-messages');
+    const messageElements = chatContainer.querySelectorAll('.chat-message'); // または対応するセレクタ
+    // ※もし独自の関数でログ管理していればその配列を渡してもOKです
+    
     // --- UIを上下分割モードに切り替え ---
     const topPane = document.getElementById('top-pane');
     const bottomPane = document.getElementById('bottom-pane');
     
     bottomPane.style.display = 'flex';
-    // ★ここで初めて上ペインに高さ制限とスクロールをかけ、見やすく固定する
     topPane.style.maxHeight = '40vh'; 
     topPane.style.overflowY = 'auto';
 
     // チャットエリアに「鑑定中...」のメッセージを表示
-    const chatContainer = document.getElementById('ai-chat-messages');
     chatContainer.innerHTML = `<div style="background: #fff; padding: 10px; border-radius: 8px; border: 1px solid #ddd; font-size: 0.9em;">🔮 朱学院流ベテラン占い師が命式を読み解いています...少々お待ちください。</div>`;
 
     try {
-        // --- Renderサーバーへ通信する処理（フェッチ） ---
+        // --- Renderサーバーへ通信する処理（命式・お相手データ・チャット履歴を同封） ---
         const response = await fetch('https://sanmeigaku-02ci.onrender.com/api/kantei', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 menuType: menuType,
                 meishikiData: meishikiData,
-                additionalInfo: additionalInfo
+                partnerMeishikiData: partnerMeishikiData, 
+                additionalInfo: additionalInfo,
+                history: chatHistory // ★これまでの会話コンテキストを送信
             })
         });
 
@@ -1244,7 +1266,7 @@ async function requestAiConsultation() {
 
         // 鑑定結果をチャットエリアに表示
         chatContainer.innerHTML = `
-            <div style="background: #fff; padding: 12px; border-radius: 8px; border: 1px solid #bce8f1; font-size: 0.9em; line-height: 1.5;">
+            <div style="background: #fff; padding: 12px; border-radius: 8px; border: 1px solid #bce8f1; font-size: 0.9em; line-height: 1.5;" class="chat-message ai-msg">
                 <strong>【AI鑑定結果】</strong><br>
                 ${data.result.replace(/\n/g, '<br>')}
             </div>
@@ -1267,48 +1289,34 @@ function closeAIChat() {
 
 // 4. 追い質問（追加チャット）の送信処理
 async function sendFollowUpMessage() {
-    const input = document.getElementById('ai-followup-input');
-    const question = input.value.trim();
+    const inputEl = document.getElementById('ai-followup-input');
+    const question = inputEl.value.trim();
     if (!question) return;
 
-    const chatContainer = document.getElementById('ai-chat-messages');
+    // 画面に自分の質問を追加
+    appendChatMessage('user', question);
+    inputEl.value = '';
 
-    // ユーザーの質問を吹き出しとして追加
-    chatContainer.innerHTML += `
-        <div style="background: #e2e8f0; padding: 10px; border-radius: 8px; align-self: flex-end; max-width: 85%; font-size: 0.9em;">
-            ${question}
-        </div>
-    `;
-    input.value = '';
-    chatContainer.scrollTop = chatContainer.scrollHeight;
-
-    // AIからの返信用のプレースホルダーを追加
-    const loadingId = 'loading-' + Date.now();
-    chatContainer.innerHTML += `
-        <div id="${loadingId}" style="background: #fff; padding: 10px; border-radius: 8px; border: 1px solid #ddd; font-size: 0.9em;">
-            考え中...
-        </div>
-    `;
-    chatContainer.scrollTop = chatContainer.scrollHeight;
+    const meishikiData = collectCurrentMeishikiData();
 
     try {
-        // サーバーへ追加質問を送信
-        const response = await fetch(' https://sanmeigaku-02ci.onrender.com/api/kantei', {
+        const response = await fetch('https://sanmeigaku-02ci.onrender.com/api/chat', { // または /api/kantei
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ question: question })
+            body: JSON.stringify({
+                message: question,
+                meishikiData: meishikiData,
+                // 必要であればここにチャット履歴も入れる
+            })
         });
-        const data = await response.json();
 
-        // プレースホルダーを実際の回答に書き換え
-        document.getElementById(loadingId).outerHTML = `
-            <div style="background: #fff; padding: 12px; border-radius: 8px; border: 1px solid #bce8f1; font-size: 0.9em; line-height: 1.5;">
-                ${data.result.replace(/\n/g, '<br>')}
-            </div>
-        `;
-    } catch (error) {
-        document.getElementById(loadingId).outerHTML = `<div style="color: red; font-size: 0.9em;">エラーが発生しました。</div>`;
+        const data = await response.json();
+        if (data.reply || data.result) {
+            appendChatMessage('ai', data.reply || data.result);
+        }
+    } catch (e) {
+        console.error(e);
+        appendChatMessage('ai', '通信エラーが発生しました。');
     }
-    chatContainer.scrollTop = chatContainer.scrollHeight;
 }
 
