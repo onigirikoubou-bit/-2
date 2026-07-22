@@ -1133,15 +1133,21 @@ function toggleAiInput() {
     const compArea = document.getElementById('compatibility-input-area');
     const freeArea = document.getElementById('free-input-area');
 
-    // 一旦両方隠す
-    compArea.style.display = 'none';
-    freeArea.style.display = 'none';
+    // 要素が存在する場合のみ display を変更する
+    if (compArea) {
+        compArea.style.display = 'none';
+    }
+    if (freeArea) {
+        freeArea.style.display = 'none';
+    }
 
-    // 選択された項目に応じて表示
-    if (select.value === 'compatibility') {
-        compArea.style.display = 'block';
-    } else if (select.value === 'free') {
-        freeArea.style.display = 'block';
+    // 選択された項目に応じて表示（select や要素が存在する場合のみ実行）
+    if (select) {
+        if (select.value === 'compatibility' && compArea) {
+            compArea.style.display = 'block';
+        } else if (select.value === 'free' && freeArea) {
+            freeArea.style.display = 'block';
+        }
     }
 }
 
