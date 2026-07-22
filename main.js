@@ -1264,11 +1264,14 @@ async function requestAiConsultation() {
 
         const data = await response.json();
 
+        // サーバー側の返却キー（result または reply）に対応し、未定義の場合は空文字にする
+        const rawText = data.result || data.reply || '';
+
         // 鑑定結果をチャットエリアに表示
         chatContainer.innerHTML = `
             <div style="background: #fff; padding: 12px; border-radius: 8px; border: 1px solid #bce8f1; font-size: 0.9em; line-height: 1.5;" class="chat-message ai-msg">
                 <strong>【AI鑑定結果】</strong><br>
-                ${data.result.replace(/\n/g, '<br>')}
+                ${rawText.replace(/\n/g, '<br>')}
             </div>
         `;
     } catch (error) {
