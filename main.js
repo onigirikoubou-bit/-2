@@ -1408,6 +1408,15 @@ async function requestAiConsultation() {
         chatContainer.innerHTML = `<div style="background: #fff; padding: 10px; border-radius: 8px; border: 1px solid #ddd; font-size: 0.9em;">🔮 朱学院流ベテラン占い師が命式を読み解いています...少々お待ちください。</div>`;
     }
 
+            // ★まずステータスやテキストの生データを調べる
+        console.log("レスポンスのステータス:", response.status);
+        const rawText = await response.text();
+        console.log("生レスポンスデータ:", rawText);
+
+        // その後にJSONとしてパースする
+        const data = JSON.parse(rawText);
+        console.log("パース後データ:", data);
+
     try {
         const response = await fetch('https://sanmeigaku-02ci.onrender.com/api/kantei', {
             method: 'POST',
