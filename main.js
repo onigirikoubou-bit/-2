@@ -1272,13 +1272,6 @@ async function requestAiConsultation() {
         chatContainer.innerHTML = `<div style="background: #fff; padding: 10px; border-radius: 8px; border: 1px solid #ddd; font-size: 0.9em;">🔮 朱学院流ベテラン占い師が命式を読み解いています...少々お待ちください。</div>`;
     }
 
-    // デバッグ用ログ（送信内容の確認）
-    console.log("=== 【AI鑑定送信データ確認】 ===");
-    console.log("menuType:", menuType);
-    console.log("meishikiData (1人目):", meishikiData);
-    console.log("partnerMeishikiData (2人目):", partnerMeishikiData);
-    console.log("================================");
-
     try {
         const response = await fetch('https://sanmeigaku-02ci.onrender.com/api/kantei', {
             method: 'POST',
@@ -1293,7 +1286,6 @@ async function requestAiConsultation() {
         });
 
         const data = await response.json();
-        console.log("鑑定結果受信:", data);
 
         // --- ★ サーバーからの結果をチャットエリアに描画する ---
         if (chatContainer) {
