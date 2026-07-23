@@ -1281,7 +1281,18 @@ async function requestAiConsultation() {
         const data = await response.json();
         
         console.log("鑑定結果受信:", data);
-        // （以降、レスポンスを画面に描画する処理へ...）
+        // ★ここを追加：サーバーからの結果を画面（チャットエリア）に描画する
+        if (chatContainer) {
+            // サーバーから返ってきた文章がどのプロパティに入っているかに合わせて調整してください
+            // 例： data.result または data.message など
+            const resultText = data.result || data.message || "鑑定結果を取得しました。";
+            
+            chatContainer.innerHTML = `
+                <div style="background: #fff; padding: 15px; border-radius: 8px; border: 1px solid #ddd; font-size: 0.95em; line-height: 1.6;">
+                    ${resultText.replace(/\n/g, '<br>')}
+                </div>
+            `;
+        }
 
     } catch (e) {
         console.error("通信エラー:", e);
