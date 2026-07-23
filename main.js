@@ -1382,14 +1382,18 @@ async function requestAiConsultation() {
 
         const resultText = data.result || data.message || "鑑定結果を取得しました。";
 
-        // --- ★ ここで自動保存を実行 ---
-        if (menuType && menuType.includes('compatibility')) {
-            // 相性診断として保存（1人目と2人目のデータを両方渡す）
-            saveKanteiHistory('compatibility', meishikiData, resultText, partnerMeishikiData);
-        } else {
-            // 個人鑑定として保存（1人目のデータのみ渡す）
-            saveKanteiHistory('personal', meishikiData, resultText);
+        // --- ★ ここで「最新の履歴データ」にAI鑑定結果をドッキングして保存する ---
+        const storedData = localStorage.getItem('searchHistory');
+        let currentHistory = storedData ? JSON.parse(storedData) : [];
+
+        if (currentHistory.length > 0) {
+            // 一番新しく追加された履歴（先頭）に result を書き込む
+            currentHistory[0].result = resultText;
+            // ローカルストレージに上書き保存
+            localStorage.setItem('searchHistory', JSON.stringify(currentHistory));
+            console.log("【保存成功】最新の履歴にAI鑑定結果をドッキングしました！", currentHistory[0]);
         }
+        // ------------------------------------------------------------------
 
         // --- サーバーからの結果をチャットエリアに描画する ---
         if (chatContainer) {
