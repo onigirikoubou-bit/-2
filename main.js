@@ -1285,7 +1285,7 @@ async function requestAiConsultation() {
         if (chatContainer) {
             // サーバーから返ってきた文章がどのプロパティに入っているかに合わせて調整してください
             // 例： data.result または data.message など
-            const resultText = data.result || data.message || "鑑定結果を取得しました。";
+            const resultText = response.text || "鑑定結果を取得しました。";
             
             chatContainer.innerHTML = `
                 <div style="background: #fff; padding: 15px; border-radius: 8px; border: 1px solid #ddd; font-size: 0.95em; line-height: 1.6;">
