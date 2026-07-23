@@ -25,6 +25,9 @@ let sharedData = {
     y: "", m: "", d: "", comment: ""
 };
 
+// ローカルストレージのデータを一時的に記憶しておく変数（入れ物）
+let tempPartnerData = null;
+
 function updateHistoryUI() {
     const listEl = document.getElementById('history-list');
     listEl.innerHTML = ''; 
@@ -269,6 +272,17 @@ function renderDaiunTable(startAge, baseEto, isForward, nikkan, currentAge) {
 // 3. メイン計算ロジック（中央揃え・複数蔵干出力版）
 // ==========================================
 function performCalculation() {
+    // 【ステップ①】いまローカルストレージに残っている「直前のデータ」を一時変数に回収！
+    const oldData = localStorage.getItem('sanmeigaku_previous_meishiki');
+    if (oldData) {
+        try {
+            tempPartnerData = JSON.parse(oldData);
+            console.log("一時変数 tempPartnerData に1人目のデータを退避しました:", tempPartnerData);
+        } catch (e) {
+            console.error("退避データのパースに失敗しました:", e);
+        }
+    }
+
     const y = parseInt(document.getElementById('year-input').value, 10);
     const m = parseInt(document.getElementById('month-input').value, 10);
     const d = parseInt(document.getElementById('day-input').value, 10);
@@ -550,12 +564,12 @@ if (shugoshinArea && shugoshinContent && shugoInfo) {
 
     showDiagnosis(map);
 
-    // ※ `resultData`（または実際に計算結果が入っている変数名）を丸ごと保存します
-const resultData = collectCurrentMeishikiData(); // または計算済みのオブジェクト
-// ★ 計算済みのオブジェクトをまるごとローカルストレージに保存
-localStorage.setItem('sanmeigaku_previous_meishiki', JSON.stringify(resultData));
-
-
+    // 【ステップ②】今回新しく計算された最新データを、ローカルストレージに新しく書き込む
+    const newData = collectCurrentMeishikiData();
+    if (newData && newData.birthDate) {
+        localStorage.setItem('sanmeigaku_previous_meishiki', JSON.stringify(newData));
+        console.log("ローカルストレージを最新データに更新しました:", newData);
+    }
 }
 }
 
@@ -1211,27 +1225,29 @@ async function requestAiConsultation() {
 
     // --- 相性診断の場合の処理 ---
     if (menuType && menuType.includes('compatibility')) {
-        // ★ ローカルストレージから「直前の計算済みデータ」を引っ張る
-        const savedData = localStorage.getItem('sanmeigaku_previous_meishiki');
         
-        if (savedData) {
-            try {
-                partnerMeishikiData = JSON.parse(savedData);
-            } catch (e) {
-                console.error("保存データのパースに失敗しました:", e);
+        // ★【修正ポイント】：
+        // 1人目には、先ほど `performCalculation` で一時退避させておいた「1人目のデータ（tempPartnerData）」を入れる！
+        if (typeof tempPartnerData !== 'undefined' && tempPartnerData) {
+            meishikiData = tempPartnerData; 
+        } else {
+            // 万が一一時変数がない場合のフォールバック（ローカルストレージの直前データ）
+            const savedData = localStorage.getItem('sanmeigaku_previous_meishiki');
+            if (savedData) {
+                try {
+                    meishikiData = JSON.parse(savedData);
+                } catch (e) {
+                    console.error("保存データのパースに失敗しました:", e);
+                }
             }
         }
 
-        // もしデータがなければ（2人分の算出がされていない場合）
-        if (!partnerMeishikiData) {
-            alert('お相手の命式データが見つかりません。お手数ですが、別の方の生年月日を入力して算出してしてから再度お試しください。');
-            return;
-        }
+        // 2人目には、いま画面に入力・表示されている最新のデータを入れる
+        partnerMeishikiData = collectCurrentMeishikiData();
 
-    } else if (menuType === 'free') {
-        additionalInfo.freeQuestion = document.getElementById('ai-free-question')?.value || '';
-        if (!additionalInfo.freeQuestion) {
-            alert('質問内容を入力してください。');
+        // もしデータがなければ（2人分の算出がされていない場合）
+        if (!meishikiData || !partnerMeishikiData) {
+            alert('お相手または1人目の命式データが見つかりません。お手数ですが、別の方の生年月日を入力して算出してしてから再度お試しください。');
             return;
         }
     }
