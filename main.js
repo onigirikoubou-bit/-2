@@ -1345,106 +1345,44 @@ function collectCurrentMeishikiData() {
 }
 
 // 2. 「AIに鑑定を依頼する」ボタンが押されたときの処理
-async function requestAiConsultation() {
-    const menuType = document.getElementById('ai-menu-select').value;
-    
-    // --- 1人目（相談者）の計算結果を取得 ---
-    let meishikiData = collectCurrentMeishikiData(); 
-
-    if (!meishikiData) {
-        alert('まずは命式を算出してください。');
-        return;
-    }
-
-    let additionalInfo = {};
-    let partnerMeishikiData = null; 
-
-    // --- 相性診断の場合の処理 ---
-    if (menuType && menuType.includes('compatibility')) {
-        
-        // 1人目には、事前に退避させておいた「tempPartnerData」をセット！
-        if (typeof tempPartnerData !== 'undefined' && tempPartnerData) {
-            meishikiData = tempPartnerData; 
-        } else {
-            const savedData = localStorage.getItem('sanmeigaku_previous_meishiki');
-            if (savedData) {
-                try {
-                    meishikiData = JSON.parse(savedData);
-                } catch (e) {
-                    console.error("保存データのパースに失敗しました:", e);
-                }
-            }
-        }
-
-        // 2人目には、いま画面に入力されている最新のデータを入れる
-        partnerMeishikiData = collectCurrentMeishikiData();
-
-        if (!meishikiData || !partnerMeishikiData) {
-            alert('お相手または1人目の命式データが見つかりません。お手数ですが、別の方の生年月日を入力して算出してしてから再度お試しください。');
-            return;
-        }
-
-    } else if (menuType === 'free') {
-        additionalInfo.freeQuestion = document.getElementById('ai-free-question')?.value || '';
-        if (!additionalInfo.freeQuestion) {
-            alert('質問内容を入力してください。');
-            return;
-        }
-    }
-
-    // --- ★【復活】UIを上下分割モードに切り替え ---
-    const topPane = document.getElementById('top-pane');
-    const bottomPane = document.getElementById('bottom-pane');
-    
-    if (bottomPane) bottomPane.style.display = 'flex';
-    if (topPane) {
-        topPane.style.maxHeight = '40vh'; 
-        topPane.style.overflowY = 'auto';
-    }
-
-    // --- ★【復活】チャットエリアに「鑑定中...」のメッセージを表示 ---
+async function requestAiConsultation(menuType) {
+    // 1. チャットコンテナの取得と「読み込み中」の表示
     const chatContainer = document.getElementById('ai-chat-messages');
     if (chatContainer) {
         chatContainer.innerHTML = `<div style="background: #fff; padding: 10px; border-radius: 8px; border: 1px solid #ddd; font-size: 0.9em;">🔮 朱学院流ベテラン占い師が命式を読み解いています...少々お待ちください。</div>`;
     }
 
-            // ★まずステータスやテキストの生データを調べる
-        console.log("レスポンスのステータス:", response.status);
-        const rawText = await response.text();
-        console.log("生レスポンスデータ:", rawText);
-
-        // その後にJSONとしてパースする
-        const data = JSON.parse(rawText);
-        console.log("パース後データ:", data);
-
     try {
+        // 2. サーバへ通信（fetch）
         const response = await fetch('https://sanmeigaku-02ci.onrender.com/api/kantei', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 menuType: menuType,
-                meishikiData: meishikiData,
-                partnerMeishikiData: partnerMeishikiData,
-                additionalInfo: additionalInfo,
-                history: typeof chatHistory !== 'undefined' ? chatHistory : []
+                // 他に必要なパラメータ（meishikiDataなど）がここに入ります
             })
         });
 
-        const data = await response.json();
-        console.log("鑑定結果受信:", data);
+        // 3. 通信のステータスや生データをログで確認
+        console.log("レスポンスのステータス:", response.status);
+        const rawText = await response.text();
+        console.log("生レスポンスデータ:", rawText);
 
+        // 4. JSONとしてパース
+        const data = JSON.parse(rawText);
+        console.log("パース後データ:", data);
+
+        // 5. 結果テキストの抽出
         const resultText = data.result || data.message || "鑑定結果を取得しました。";
 
-        // --- ★ ここで自動保存を実行 ---
+        // 6. 履歴への自動保存
         if (menuType && menuType.includes('compatibility')) {
-            // 相性診断として保存（1人目と2人目のデータを両方渡す）
             saveKanteiHistory('compatibility', meishikiData, resultText, partnerMeishikiData);
         } else {
-            // 個人鑑定として保存（1人目のデータのみ渡す）
             saveKanteiHistory('personal', meishikiData, resultText);
         }
 
-        // --- サーバーからの結果をチャットエリアに描画する ---
+        // 7. チャットエリアに結果を描画
         if (chatContainer) {
             chatContainer.innerHTML = `
                 <div style="background: #f9f9f9; padding: 15px; border-radius: 8px; border: 1px solid #ddd; font-size: 0.95em; line-height: 1.6;">
@@ -1453,10 +1391,10 @@ async function requestAiConsultation() {
             `;
         }
 
-    } catch (e) {
-        console.error("通信エラー:", e);
+    } catch (error) {
+        console.error("AI鑑定エラー:", error);
         if (chatContainer) {
-            chatContainer.innerHTML = `<div style="color: red; padding: 10px;">通信エラーが発生しました。時間をおいて再度お試しください。</div>`;
+            chatContainer.innerHTML = `<div style="color: red; padding: 10px;">通信エラーが発生しました。もう一度お試しください。</div>`;
         }
     }
 }
