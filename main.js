@@ -988,13 +988,16 @@ function reflectData(name, type) {
 }
 
 // 過去履歴ボタンから呼び出される関数
+// 現在選択されている履歴のAI結果を一時保持する変数
+let currentLoadedHistoryResult = "";
+
+// 1. 履歴一覧を表示する関数（ご提示いただいたコードの改修版）
 function showHistoryList() {
-    // 履歴データの取得
+    // 履歴データの取得（※お使いのストレージキーが 'sanmeigaku_all_history' の場合はそちらに合わせてください）
     const data = localStorage.getItem('searchHistory');
     const history = data ? JSON.parse(data) : [];
     
-    // 表示エリアを取得してリスト化
-    const displayArea = document.getElementById('figure-display-area'); // 表示先のID
+    const displayArea = document.getElementById('figure-display-area');
     if (!displayArea) return;
 
     if (history.length === 0) {
@@ -1004,34 +1007,167 @@ function showHistoryList() {
 
     let html = `<ul style="list-style: none; padding: 0;">`;
     history.forEach((h, index) => {
+        // 相性診断か個人鑑定かのラベル分けや、タイトルの調整
+        const titleText = h.comment || (h.type === 'compatibility' ? '相性診断' : '個人鑑定');
+        
         html += `
-            <li style="margin-bottom:10px; border-bottom:1px solid #ccc; padding:5px; cursor:pointer;" 
-                onclick='reflectHistory(${index})'>
-                <strong>${h.date}</strong> - ${h.comment || "タイトルなし"}
+            <li style="margin-bottom:10px; border-bottom:1px solid #ccc; padding:8px; cursor:pointer; background:#fff; border-radius:4px;" 
+                onclick='reflectHistory(${index})' 
+                onmouseover="this.style.background='#f7fafc'" 
+                onmouseout="this.style.background='#fff'">
+                <div style="font-size:0.85em; color:#666;">${h.date}</div>
+                <div style="font-weight:bold; color:#2d3748;">${titleText}</div>
             </li>`;
     });
     html += `</ul>`;
     displayArea.innerHTML = html;
 }
 
-// 履歴をクリックした時に値をフォームへ戻す関数
+// 2. 履歴の項目をクリックして命式を復元する関数
+function reflectHistory(index) {
+    const data = localStorage.getItem('searchHistory');
+    const history = data ? JSON.parse(data) : [];
+    const h = history[index];
+    if (!h) return;
+
+    // --- ① 既存の「命式等を画面に復元する処理」をここに記述 ---
+    // 例: document.getElementById('name-input').value = h.name; など
+    // （すでにお持ちの反映処理をそのままここに動かしてください）
+    console.log("命式を復元しました:", h);
+
+    // --- ② AI鑑定結果が保存されている場合の処理 ---
+    // 履歴データの中に result（AI結果）が存在するかチェック
+    if (h.result) {
+        // AI結果を一時変数に保持
+        currentLoadedHistoryResult = h.result;
+
+        // 命式データが表示されている付近（または任意の場所）に「AI結果を見るボタン」を出現させる
+        showAiResultButtonContainer();
+    } else {
+        // AI結果がない履歴の場合はボタンを非表示にする
+        currentLoadedHistoryResult = "";
+        hideAiResultButtonContainer();
+    }
+}
+
+// --- 履歴の項目をクリックして命式を復元する関数 ---
 function reflectHistory(index) {
     const data = localStorage.getItem('searchHistory');
     const history = data ? JSON.parse(data) : [];
     const h = history[index];
 
-    if (h) {
-        // 日付を反映 (例: 1988/6/3 -> 年, 月, 日)
-        const parts = h.date.split('/');
+    if (!h) return;
+
+    // 1. 日付をフォームへ戻す
+    const parts = h.date.split('/');
+    if (parts.length >= 3) {
         document.getElementById('year-input').value = parts[0];
         document.getElementById('month-input').value = parseInt(parts[1], 10);
         document.getElementById('day-input').value = parseInt(parts[2], 10);
-        document.getElementById('comment-input').value = h.comment || "";
+    }
+    
+    const commentInput = document.getElementById('comment-input');
+    if (commentInput) {
+        commentInput.value = h.comment || "";
+    }
 
-        // 再計算を実行
-        if (typeof performCalculation === 'function') {
-            performCalculation();
-        }
+    // 2. 再計算を実行して画面に命式を現れさせる
+    if (typeof performCalculation === 'function') {
+        performCalculation();
+    }
+
+    // 3. AI鑑定結果（result）が保存されている履歴の場合のみ、ボタンを表示する
+    const actionArea = document.getElementById('history-action-area');
+    
+    if (h.result) {
+        currentLoadedHistoryResult = h.result; // AI結果を保持
+        if (actionArea) actionArea.style.display = 'block'; // ボタンを表示
+    } else {
+        currentLoadedHistoryResult = "";
+        if (actionArea) actionArea.style.display = 'none'; // ボタンを隠す
+    }
+}
+
+// 5. ボタンが押されたとき、下半分のウインドウにAI鑑定結果を表示する関数
+function showAiResultFromHistory() {
+    if (!currentLoadedHistoryResult) {
+        alert('この履歴には保存されたAI鑑定結果がありません。');
+        return;
+    }
+
+    // UIを上下分割モードに切り替え
+    const topPane = document.getElementById('top-pane');
+    const bottomPane = document.getElementById('bottom-pane');
+    
+    if (bottomPane) bottomPane.style.display = 'flex';
+    if (topPane) {
+        topPane.style.maxHeight = '40vh'; 
+        topPane.style.overflowY = 'auto';
+    }
+
+    // 下半ペインのチャットエリアに結果を描画
+    const chatContainer = document.getElementById('ai-chat-messages');
+    if (chatContainer) {
+        chatContainer.innerHTML = `
+            <div style="background: #f9f9f9; padding: 15px; border-radius: 8px; border: 1px solid #ddd; font-size: 0.95em; line-height: 1.6;">
+                <div style="font-size: 0.8em; color: #666; margin-bottom: 8px; border-bottom: 1px dashed #ccc; padding-bottom: 4px; display: flex; justify-content: space-between; align-items: center;">
+                    <span>【過去のAI鑑定結果の控え】</span>
+                    <button onclick="closeBottomPane()" style="background:none; border:none; color:#e53e3e; cursor:pointer; font-weight:bold; font-size: 1.1em;">✖ 閉じる</button>
+                </div>
+                ${currentLoadedHistoryResult.replace(/\n/g, '<br>')}
+            </div>
+        `;
+    }
+}
+
+// 6. 下半ペインを閉じて元の命式だけの画面に戻す関数
+function closeBottomPane() {
+    const bottomPane = document.getElementById('bottom-pane');
+    const topPane = document.getElementById('top-pane');
+    
+    if (bottomPane) bottomPane.style.display = 'none';
+    if (topPane) {
+        topPane.style.maxHeight = 'none'; 
+        topPane.style.overflowY = 'visible';
+    }
+}
+
+// --- 履歴の項目をクリックして命式を復元し、AI結果ボタンを制御する関数 ---
+function reflectHistory(index) {
+    const data = localStorage.getItem('searchHistory');
+    const history = data ? JSON.parse(data) : [];
+    const h = history[index];
+
+    if (!h) return;
+
+    // 1. 【既存の処理】日付をフォームへ戻す
+    const parts = h.date.split('/');
+    if (parts.length >= 3) {
+        document.getElementById('year-input').value = parts[0];
+        document.getElementById('month-input').value = parseInt(parts[1], 10);
+        document.getElementById('day-input').value = parseInt(parts[2], 10);
+    }
+    
+    const commentInput = document.getElementById('comment-input');
+    if (commentInput) {
+        commentInput.value = h.comment || "";
+    }
+
+    // 2. 【既存の処理】再計算を実行して画面に命式を現れさせる
+    if (typeof performCalculation === 'function') {
+        performCalculation();
+    }
+
+    // 3. 【今回の追加処理】AI鑑定結果が保存されている履歴の場合のみ、ボタンを表示する
+    if (h.result) {
+        // AI結果を一時変数に保持
+        currentLoadedHistoryResult = h.result;
+        // 「AI結果を見るボタン」を出現させる
+        showAiResultButtonContainer();
+    } else {
+        // AI結果がない履歴（通常の古い検索履歴など）の場合はボタンを隠す
+        currentLoadedHistoryResult = "";
+        hideAiResultButtonContainer();
     }
 }
 
@@ -1286,10 +1422,21 @@ async function requestAiConsultation() {
         });
 
         const data = await response.json();
+        console.log("鑑定結果受信:", data);
 
-        // --- ★ サーバーからの結果をチャットエリアに描画する ---
+        const resultText = data.result || data.message || "鑑定結果を取得しました。";
+
+        // --- ★ ここで自動保存を実行 ---
+        if (menuType && menuType.includes('compatibility')) {
+            // 相性診断として保存（1人目と2人目のデータを両方渡す）
+            saveKanteiHistory('compatibility', meishikiData, resultText, partnerMeishikiData);
+        } else {
+            // 個人鑑定として保存（1人目のデータのみ渡す）
+            saveKanteiHistory('personal', meishikiData, resultText);
+        }
+
+        // --- サーバーからの結果をチャットエリアに描画する ---
         if (chatContainer) {
-            const resultText = data.result || data.message || "鑑定結果を取得しました。";
             chatContainer.innerHTML = `
                 <div style="background: #f9f9f9; padding: 15px; border-radius: 8px; border: 1px solid #ddd; font-size: 0.95em; line-height: 1.6;">
                     ${resultText.replace(/\n/g, '<br>')}
@@ -1348,3 +1495,41 @@ async function sendFollowUpMessage() {
     }
 }
 
+/**
+ * 鑑定結果をローカルストレージに保存する共通関数
+ * @param {string} type - 鑑定の種類 ('personal' または 'compatibility')
+ * @param {Object} primaryData - 1人目のデータ（または個人鑑定のデータ）
+ * @param {string} resultText - AIからの鑑定結果テキスト
+ * @param {Object|null} partnerData - 2人目のデータ（相性診断の場合のみ）
+ */
+function saveKanteiHistory(type, primaryData, resultText, partnerData = null) {
+    // 共通の保存先キー（あるいは type によってキーを分けることも可能）
+    const STORAGE_KEY = 'sanmeigaku_all_history'; 
+    
+    let historyList = [];
+    try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) historyList = JSON.parse(saved);
+    } catch (e) {
+        console.error("履歴の読み込みに失敗しました", e);
+    }
+
+    // 保存するデータの形を統一
+    const newEntry = {
+        id: Date.now(),
+        date: new Date().toLocaleDateString('ja-JP'),
+        type: type, // 'personal' または 'compatibility'
+        primaryData: primaryData, // 1人目（または個人）
+        partnerData: partnerData, // 2人目（相性診断でなければ null）
+        result: resultText
+    };
+
+    // リストの先頭に追加（最大20件まで保持）
+    historyList.unshift(newEntry);
+    if (historyList.length > 20) {
+        historyList = historyList.slice(0, 20);
+    }
+
+    // 保存
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(historyList));
+}

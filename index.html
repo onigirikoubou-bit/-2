@@ -315,18 +315,6 @@ h1 {
                     </select>
                 </div>
 
-                <!-- 相性診断用の追加入力欄
-                <div id="compatibility-input-area" style="display: none; margin-bottom: 10px; padding: 10px; background: #f0f4f8; border-radius: 4px; border: 1px dashed #b0c4de;">
-                    <p style="font-size: 0.85em; margin: 0 0 5px 0; color: #333;">お相手の生年月日と性別を入力してください</p>
-                    <div style="display: flex; gap: 5px;">
-                        <input type="date" id="partner-birthday" style="flex: 1; padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
-                        <select id="partner-gender" style="padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
-                            <option value="male">男性</option>
-                            <option value="female">女性</option>
-                        </select>
-                    </div>
-                </div> -->
-
                 <!-- 自由入力用のテキストエリア -->
                 <div id="free-input-area" style="margin-bottom: 10px; display: none;">
                     <textarea id="ai-free-question" placeholder="例：5年以内に転職を考えていますが、いつ頃が良いでしょうか？" style="width: 100%; height: 60px; padding: 8px; border-radius: 4px; border: 1px solid #ccc; box-sizing: border-box; font-size: 0.9em;"></textarea>
@@ -336,6 +324,13 @@ h1 {
                 <button onclick="requestAiConsultation()" style="width: 100%; padding: 12px; background: #2c3e50; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 1em;">
                     AIに鑑定を依頼する
                 </button>
+                <!-- 履歴から読み込んだときに表示・有効化する「AI鑑定結果を再表示するボタン」の例 -->
+<div id="history-action-area" style="margin-top: 10px; display: none;">
+    <button onclick="showAiResultFromHistory()" style="padding: 8px 15px; background: #2b6cb0; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9em;">
+        💬 AI鑑定結果
+    </button>
+</div>
+
             </div>
 
             <!-- 大運表エリア -->
