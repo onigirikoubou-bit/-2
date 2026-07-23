@@ -28,6 +28,9 @@ let sharedData = {
 // ローカルストレージのデータを一時的に記憶しておく変数（入れ物）
 let tempPartnerData = null;
 
+// --- 履歴リストを保持する大元の変数をグローバルに定義 ---
+let historyList = [];
+
 function updateHistoryUI() {
     const listEl = document.getElementById('history-list');
     listEl.innerHTML = ''; 
