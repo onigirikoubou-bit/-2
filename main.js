@@ -71,6 +71,15 @@ const HistoryModule = {
     const data = localStorage.getItem('searchHistory');
     const history = data ? JSON.parse(data) : [];
 
+    if (historyList.length > 0) {
+    // 一番新しく追加された履歴（先頭のデータ）に、今回のAI鑑定結果を書き込む
+    historyList[0].result = resultText;
+    
+    // 変更した履歴をもう一度 localStorage に保存し直す
+    localStorage.setItem('searchHistory', JSON.stringify(historyList));
+    console.log("【保存成功】最新の履歴にAI鑑定結果をドッキングしました！", historyList[0]);
+}
+
     // 変数に溜めてから、最後に一度だけ代入する
     const htmlString = history.map((h, index) => {
         const commentPart = (h.comment && h.comment.trim() !== "") ? ` - ${h.comment}` : "";
