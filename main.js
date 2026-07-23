@@ -1213,7 +1213,7 @@ async function requestAiConsultation() {
     const menuType = document.getElementById('ai-menu-select').value;
     
     // --- 1人目（相談者）の計算結果を取得 ---
-    const meishikiData = collectCurrentMeishikiData(); 
+    let meishikiData = collectCurrentMeishikiData(); 
 
     if (!meishikiData) {
         alert('まずは命式を算出してください。');
