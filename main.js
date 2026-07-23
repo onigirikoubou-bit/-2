@@ -1023,70 +1023,6 @@ function showHistoryList() {
     displayArea.innerHTML = html;
 }
 
-// 2. 履歴の項目をクリックして命式を復元する関数
-function reflectHistory(index) {
-    const data = localStorage.getItem('searchHistory');
-    const history = data ? JSON.parse(data) : [];
-    const h = history[index];
-    if (!h) return;
-
-    // --- ① 既存の「命式等を画面に復元する処理」をここに記述 ---
-    // 例: document.getElementById('name-input').value = h.name; など
-    // （すでにお持ちの反映処理をそのままここに動かしてください）
-    console.log("命式を復元しました:", h);
-
-    // --- ② AI鑑定結果が保存されている場合の処理 ---
-    // 履歴データの中に result（AI結果）が存在するかチェック
-    if (h.result) {
-        // AI結果を一時変数に保持
-        currentLoadedHistoryResult = h.result;
-
-        // 命式データが表示されている付近（または任意の場所）に「AI結果を見るボタン」を出現させる
-        showAiResultButtonContainer();
-    } else {
-        // AI結果がない履歴の場合はボタンを非表示にする
-        currentLoadedHistoryResult = "";
-        hideAiResultButtonContainer();
-    }
-}
-
-// --- 履歴の項目をクリックして命式を復元する関数 ---
-function reflectHistory(index) {
-    const data = localStorage.getItem('searchHistory');
-    const history = data ? JSON.parse(data) : [];
-    const h = history[index];
-
-    if (!h) return;
-
-    // 1. 日付をフォームへ戻す
-    const parts = h.date.split('/');
-    if (parts.length >= 3) {
-        document.getElementById('year-input').value = parts[0];
-        document.getElementById('month-input').value = parseInt(parts[1], 10);
-        document.getElementById('day-input').value = parseInt(parts[2], 10);
-    }
-    
-    const commentInput = document.getElementById('comment-input');
-    if (commentInput) {
-        commentInput.value = h.comment || "";
-    }
-
-    // 2. 再計算を実行して画面に命式を現れさせる
-    if (typeof performCalculation === 'function') {
-        performCalculation();
-    }
-
-    // 3. AI鑑定結果（result）が保存されている履歴の場合のみ、ボタンを表示する
-    const actionArea = document.getElementById('history-action-area');
-    
-    if (h.result) {
-        currentLoadedHistoryResult = h.result; // AI結果を保持
-        if (actionArea) actionArea.style.display = 'block'; // ボタンを表示
-    } else {
-        currentLoadedHistoryResult = "";
-        if (actionArea) actionArea.style.display = 'none'; // ボタンを隠す
-    }
-}
 
 // 5. ボタンが押されたとき、下半分のウインドウにAI鑑定結果を表示する関数
 function showAiResultFromHistory() {
@@ -1140,7 +1076,7 @@ function reflectHistory(index) {
 
     if (!h) return;
 
-    // 1. 【既存の処理】日付をフォームへ戻す
+    // 1. 日付をフォームへ戻す（既存の処理）
     const parts = h.date.split('/');
     if (parts.length >= 3) {
         document.getElementById('year-input').value = parts[0];
@@ -1153,22 +1089,24 @@ function reflectHistory(index) {
         commentInput.value = h.comment || "";
     }
 
-    // 2. 【既存の処理】再計算を実行して画面に命式を現れさせる
+    // 2. 再計算を実行して画面に命式を現れさせる（既存の処理）
     if (typeof performCalculation === 'function') {
         performCalculation();
     }
 
-    // 3. 【今回の追加処理】AI鑑定結果が保存されている履歴の場合のみ、ボタンを表示する
+    // 3. AI鑑定結果（result）が保存されている履歴の場合のみ、ボタンを表示する
+    // （今回はHTML側に「#history-action-area」を置いていらっしゃるので、そちらの表示/非表示を切り替えます）
+    const actionArea = document.getElementById('history-action-area');
+    
     if (h.result) {
-        // AI結果を一時変数に保持
-        currentLoadedHistoryResult = h.result;
-        // 「AI結果を見るボタン」を出現させる
-        showAiResultButtonContainer();
+        currentLoadedHistoryResult = h.result; // AI結果を一時変数に保持
+        if (actionArea) actionArea.style.display = 'block'; // ボタンを表示
     } else {
-        // AI結果がない履歴（通常の古い検索履歴など）の場合はボタンを隠す
         currentLoadedHistoryResult = "";
-        hideAiResultButtonContainer();
+        if (actionArea) actionArea.style.display = 'none'; // ボタンを隠す
     }
+    
+    console.log("履歴を反映しました。AI結果の有無:", !!h.result);
 }
 
 // 1. 性格診断を表示する関数
@@ -1345,44 +1283,98 @@ function collectCurrentMeishikiData() {
 }
 
 // 2. 「AIに鑑定を依頼する」ボタンが押されたときの処理
-async function requestAiConsultation(menuType) {
-    // 1. チャットコンテナの取得と「読み込み中」の表示
+async function requestAiConsultation() {
+    const menuType = document.getElementById('ai-menu-select').value;
+    
+    // --- 1人目（相談者）の計算結果を取得 ---
+    let meishikiData = collectCurrentMeishikiData(); 
+
+    if (!meishikiData) {
+        alert('まずは命式を算出してください。');
+        return;
+    }
+
+    let additionalInfo = {};
+    let partnerMeishikiData = null; 
+
+    // --- 相性診断の場合の処理 ---
+    if (menuType && menuType.includes('compatibility')) {
+        
+        // 1人目には、事前に退避させておいた「tempPartnerData」をセット！
+        if (typeof tempPartnerData !== 'undefined' && tempPartnerData) {
+            meishikiData = tempPartnerData; 
+        } else {
+            const savedData = localStorage.getItem('sanmeigaku_previous_meishiki');
+            if (savedData) {
+                try {
+                    meishikiData = JSON.parse(savedData);
+                } catch (e) {
+                    console.error("保存データのパースに失敗しました:", e);
+                }
+            }
+        }
+
+        // 2人目には、いま画面に入力されている最新のデータを入れる
+        partnerMeishikiData = collectCurrentMeishikiData();
+
+        if (!meishikiData || !partnerMeishikiData) {
+            alert('お相手または1人目の命式データが見つかりません。お手数ですが、別の方の生年月日を入力して算出してしてから再度お試しください。');
+            return;
+        }
+
+    } else if (menuType === 'free') {
+        additionalInfo.freeQuestion = document.getElementById('ai-free-question')?.value || '';
+        if (!additionalInfo.freeQuestion) {
+            alert('質問内容を入力してください。');
+            return;
+        }
+    }
+
+    // --- ★【復活】UIを上下分割モードに切り替え ---
+    const topPane = document.getElementById('top-pane');
+    const bottomPane = document.getElementById('bottom-pane');
+    
+    if (bottomPane) bottomPane.style.display = 'flex';
+    if (topPane) {
+        topPane.style.maxHeight = '40vh'; 
+        topPane.style.overflowY = 'auto';
+    }
+
+    // --- ★【復活】チャットエリアに「鑑定中...」のメッセージを表示 ---
     const chatContainer = document.getElementById('ai-chat-messages');
     if (chatContainer) {
         chatContainer.innerHTML = `<div style="background: #fff; padding: 10px; border-radius: 8px; border: 1px solid #ddd; font-size: 0.9em;">🔮 朱学院流ベテラン占い師が命式を読み解いています...少々お待ちください。</div>`;
     }
 
+
     try {
-        // 2. サーバへ通信（fetch）
         const response = await fetch('https://sanmeigaku-02ci.onrender.com/api/kantei', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 menuType: menuType,
-                // 他に必要なパラメータ（meishikiDataなど）がここに入ります
+                meishikiData: meishikiData,
+                partnerMeishikiData: partnerMeishikiData,
+                additionalInfo: additionalInfo,
+                history: typeof chatHistory !== 'undefined' ? chatHistory : []
             })
         });
 
-        // 3. 通信のステータスや生データをログで確認
-        console.log("レスポンスのステータス:", response.status);
-        const rawText = await response.text();
-        console.log("生レスポンスデータ:", rawText);
+        const data = await response.json();
+        console.log("鑑定結果受信:", data);
 
-        // 4. JSONとしてパース
-        const data = JSON.parse(rawText);
-        console.log("パース後データ:", data);
-
-        // 5. 結果テキストの抽出
         const resultText = data.result || data.message || "鑑定結果を取得しました。";
 
-        // 6. 履歴への自動保存
+        // --- ★ ここで自動保存を実行 ---
         if (menuType && menuType.includes('compatibility')) {
+            // 相性診断として保存（1人目と2人目のデータを両方渡す）
             saveKanteiHistory('compatibility', meishikiData, resultText, partnerMeishikiData);
         } else {
+            // 個人鑑定として保存（1人目のデータのみ渡す）
             saveKanteiHistory('personal', meishikiData, resultText);
         }
 
-        // 7. チャットエリアに結果を描画
+        // --- サーバーからの結果をチャットエリアに描画する ---
         if (chatContainer) {
             chatContainer.innerHTML = `
                 <div style="background: #f9f9f9; padding: 15px; border-radius: 8px; border: 1px solid #ddd; font-size: 0.95em; line-height: 1.6;">
@@ -1391,10 +1383,10 @@ async function requestAiConsultation(menuType) {
             `;
         }
 
-    } catch (error) {
-        console.error("AI鑑定エラー:", error);
+    } catch (e) {
+        console.error("通信エラー:", e);
         if (chatContainer) {
-            chatContainer.innerHTML = `<div style="color: red; padding: 10px;">通信エラーが発生しました。もう一度お試しください。</div>`;
+            chatContainer.innerHTML = `<div style="color: red; padding: 10px;">通信エラーが発生しました。時間をおいて再度お試しください。</div>`;
         }
     }
 }
