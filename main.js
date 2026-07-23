@@ -1073,6 +1073,11 @@ function reflectHistory(index) {
     const data = localStorage.getItem('searchHistory');
     const history = data ? JSON.parse(data) : [];
     const h = history[index];
+    
+    // ★これを追加
+    console.log("【デバッグ】クリックされた履歴データの全容:", h);
+    console.log("【デバッグ】この中の result:", h ? h.result : "データなし");
+
 
     if (!h) return;
 
