@@ -1226,12 +1226,10 @@ async function requestAiConsultation() {
     // --- 相性診断の場合の処理 ---
     if (menuType && menuType.includes('compatibility')) {
         
-        // ★【修正ポイント】：
-        // 1人目には、先ほど `performCalculation` で一時退避させておいた「1人目のデータ（tempPartnerData）」を入れる！
+        // 1人目には、事前に退避させておいた「tempPartnerData」をセット！
         if (typeof tempPartnerData !== 'undefined' && tempPartnerData) {
             meishikiData = tempPartnerData; 
         } else {
-            // 万が一一時変数がない場合のフォールバック（ローカルストレージの直前データ）
             const savedData = localStorage.getItem('sanmeigaku_previous_meishiki');
             if (savedData) {
                 try {
@@ -1242,33 +1240,46 @@ async function requestAiConsultation() {
             }
         }
 
-        // 2人目には、いま画面に入力・表示されている最新のデータを入れる
+        // 2人目には、いま画面に入力されている最新のデータを入れる
         partnerMeishikiData = collectCurrentMeishikiData();
 
-        // もしデータがなければ（2人分の算出がされていない場合）
         if (!meishikiData || !partnerMeishikiData) {
             alert('お相手または1人目の命式データが見つかりません。お手数ですが、別の方の生年月日を入力して算出してしてから再度お試しください。');
             return;
         }
+
+    } else if (menuType === 'free') {
+        additionalInfo.freeQuestion = document.getElementById('ai-free-question')?.value || '';
+        if (!additionalInfo.freeQuestion) {
+            alert('質問内容を入力してください。');
+            return;
+        }
     }
 
-    // チャットエリアに「鑑定中...」のメッセージを表示
-     const chatContainer = document.getElementById('chat-container');
+    // --- ★【復活】UIを上下分割モードに切り替え ---
+    const topPane = document.getElementById('top-pane');
+    const bottomPane = document.getElementById('bottom-pane');
+    
+    if (bottomPane) bottomPane.style.display = 'flex';
+    if (topPane) {
+        topPane.style.maxHeight = '40vh'; 
+        topPane.style.overflowY = 'auto';
+    }
 
-    // ==========================================
-    // 【1. 「鑑定中…」を表示するとき】
-    // ==========================================
+    // --- ★【復活】チャットエリアに「鑑定中...」のメッセージを表示 ---
+    const chatContainer = document.getElementById('ai-chat-messages');
     if (chatContainer) {
-        chatContainer.innerHTML += `
-            <div id="loading-bubble" style="background: #fff; padding: 10px; border-radius: 8px; border: 1px solid #ddd; margin-bottom: 10px; font-size: 0.9em;">
-                🔮 朱学院流ベテラン占い師が命式を読み解いています...少々お待ちください。
-            </div>
-        `;
-        chatContainer.scrollTop = chatContainer.scrollHeight;
+        chatContainer.innerHTML = `<div style="background: #fff; padding: 10px; border-radius: 8px; border: 1px solid #ddd; font-size: 0.9em;">🔮 朱学院流ベテラン占い師が命式を読み解いています...少々お待ちください。</div>`;
     }
+
+    // デバッグ用ログ（送信内容の確認）
+    console.log("=== 【AI鑑定送信データ確認】 ===");
+    console.log("menuType:", menuType);
+    console.log("meishikiData (1人目):", meishikiData);
+    console.log("partnerMeishikiData (2人目):", partnerMeishikiData);
+    console.log("================================");
 
     try {
-        // AIサーバーへ通信
         const response = await fetch('https://sanmeigaku-02ci.onrender.com/api/kantei', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -1282,30 +1293,22 @@ async function requestAiConsultation() {
         });
 
         const data = await response.json();
-        
-        // ==========================================
-        // 【2. 結果を受け取ったとき】
-        // ==========================================
-        if (chatContainer) {
-            // （オプション）「鑑定中…」の表示を消したい場合はここで消せます
-            const loadingBubble = document.getElementById('loading-bubble');
-            if (loadingBubble) loadingBubble.remove();
+        console.log("鑑定結果受信:", data);
 
+        // --- ★ サーバーからの結果をチャットエリアに描画する ---
+        if (chatContainer) {
             const resultText = data.result || data.message || "鑑定結果を取得しました。";
-            
-            // 結果のテキストを新しく追加する
-            chatContainer.innerHTML += `
-                <div style="background: #f9f9f9; padding: 15px; border-radius: 8px; border: 1px solid #ddd; margin-bottom: 10px; font-size: 0.95em; line-height: 1.6;">
+            chatContainer.innerHTML = `
+                <div style="background: #f9f9f9; padding: 15px; border-radius: 8px; border: 1px solid #ddd; font-size: 0.95em; line-height: 1.6;">
                     ${resultText.replace(/\n/g, '<br>')}
                 </div>
             `;
-            chatContainer.scrollTop = chatContainer.scrollHeight;
         }
 
     } catch (e) {
         console.error("通信エラー:", e);
         if (chatContainer) {
-            chatContainer.innerHTML += `<div style="color: red; padding: 10px;">通信エラーが発生しました。</div>`;
+            chatContainer.innerHTML = `<div style="color: red; padding: 10px;">通信エラーが発生しました。時間をおいて再度お試しください。</div>`;
         }
     }
 }
