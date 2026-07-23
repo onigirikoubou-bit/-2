@@ -1253,26 +1253,29 @@ async function requestAiConsultation() {
     }
 
     // チャットエリアに「鑑定中...」のメッセージを表示
-    const chatContainer = document.getElementById('chat-container'); // ※お使いのIDに合わせてください
+     const chatContainer = document.getElementById('chat-container');
+
+    // ==========================================
+    // 【1. 「鑑定中…」を表示するとき】
+    // ==========================================
     if (chatContainer) {
-        chatContainer.innerHTML = `<div style="background: #fff; padding: 10px; border-radius: 8px; border: 1px solid #ddd; font-size: 0.9em;">🔮 朱学院流ベテラン占い師が命式を読み解いています...少々お待ちください。</div>`;
+        chatContainer.innerHTML += `
+            <div id="loading-bubble" style="background: #fff; padding: 10px; border-radius: 8px; border: 1px solid #ddd; margin-bottom: 10px; font-size: 0.9em;">
+                🔮 朱学院流ベテラン占い師が命式を読み解いています...少々お待ちください。
+            </div>
+        `;
+        chatContainer.scrollTop = chatContainer.scrollHeight;
     }
 
-    // デバッグ用ログ（送信内容の確認）
-    console.log("=== 【AI鑑定送信データ確認】 ===");
-    console.log("menuType:", menuType);
-    console.log("meishikiData (1人目):", meishikiData);
-    console.log("partnerMeishikiData (2人目):", partnerMeishikiData);
-    console.log("================================");
-
     try {
+        // AIサーバーへ通信
         const response = await fetch('https://sanmeigaku-02ci.onrender.com/api/kantei', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 menuType: menuType,
                 meishikiData: meishikiData,
-                partnerMeishikiData: partnerMeishikiData, // ★ 完全なオブジェクトがここに送られます
+                partnerMeishikiData: partnerMeishikiData,
                 additionalInfo: additionalInfo,
                 history: typeof chatHistory !== 'undefined' ? chatHistory : []
             })
@@ -1280,24 +1283,29 @@ async function requestAiConsultation() {
 
         const data = await response.json();
         
-        console.log("鑑定結果受信:", data);
-        // ★ここを追加：サーバーからの結果を画面（チャットエリア）に描画する
+        // ==========================================
+        // 【2. 結果を受け取ったとき】
+        // ==========================================
         if (chatContainer) {
-            // サーバーから返ってきた文章がどのプロパティに入っているかに合わせて調整してください
-            // 例： data.result または data.message など
-            const resultText = response.text || "鑑定結果を取得しました。";
+            // （オプション）「鑑定中…」の表示を消したい場合はここで消せます
+            const loadingBubble = document.getElementById('loading-bubble');
+            if (loadingBubble) loadingBubble.remove();
+
+            const resultText = data.result || data.message || "鑑定結果を取得しました。";
             
-            chatContainer.innerHTML = `
-                <div style="background: #fff; padding: 15px; border-radius: 8px; border: 1px solid #ddd; font-size: 0.95em; line-height: 1.6;">
+            // 結果のテキストを新しく追加する
+            chatContainer.innerHTML += `
+                <div style="background: #f9f9f9; padding: 15px; border-radius: 8px; border: 1px solid #ddd; margin-bottom: 10px; font-size: 0.95em; line-height: 1.6;">
                     ${resultText.replace(/\n/g, '<br>')}
                 </div>
             `;
+            chatContainer.scrollTop = chatContainer.scrollHeight;
         }
 
     } catch (e) {
         console.error("通信エラー:", e);
         if (chatContainer) {
-            chatContainer.innerHTML = `<div style="color: red; padding: 10px;">通信エラーが発生しました。時間をおいて再度お試しください。</div>`;
+            chatContainer.innerHTML += `<div style="color: red; padding: 10px;">通信エラーが発生しました。</div>`;
         }
     }
 }
