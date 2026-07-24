@@ -61,10 +61,11 @@ const isValidDate = (year, month, day) => {
 // 3. 履歴管理モジュール (HistoryModule)
 // ==========================================
 const HistoryModule = {
-    // データを保存して画面更新
-    save: (date, comment) => {
+    // データを保存して画面更新（AI鑑定結果も一緒に保存できるように引数 result を追加）
+    save: (date, comment, result = "") => {
         let history = JSON.parse(localStorage.getItem('searchHistory') || '[]');
-        history.unshift({ date, comment, timestamp: Date.now() });
+        // result があれば含めて保存、なければ空文字
+        history.unshift({ date, comment, result: result, timestamp: Date.now() });
         history = history.slice(0, 5);
         localStorage.setItem('searchHistory', JSON.stringify(history));
         HistoryModule.render();
@@ -134,6 +135,30 @@ const HistoryModule = {
                 performCalculation();
             }
         }
+
+        // ==========================================
+        // ★ ここから下が今回追加する「AI鑑定結果の復元とボタン表示」の処理
+        // ==========================================
+        const actionArea = document.getElementById('history-action-area');
+
+        if (h && h.result) {
+            // グローバル変数にAI結果を確実にセット
+            currentLoadedHistoryResult = h.result;
+            
+            if (actionArea) {
+                actionArea.style.display = 'block'; // ボタンを表示する
+            }
+            console.log("【成功】履歴からAI鑑定結果を復元しました。文字数:", h.result.length);
+        } else {
+            // AI結果がない場合は空にしてボタンを隠す
+            currentLoadedHistoryResult = "";
+            
+            if (actionArea) {
+                actionArea.style.display = 'none'; // ボタンを非表示にする
+            }
+            console.log("【情報】この履歴には保存されたAI鑑定結果はありません。");
+        }
+        // ==========================================
     }
 }; // ← これが唯一の締めくくりです。これより下に「initImportButton」などは置かないでください。
 
@@ -641,7 +666,6 @@ document.addEventListener('DOMContentLoaded', () => {
         newCalcBtn.addEventListener('click', () => {
             performCalculation(); // 計算実行
 
-            // 保存処理もここへ統合（計算とセット）
             const y = document.getElementById('year-input')?.value || "";
             const m = document.getElementById('month-input')?.value || "";
             const d = document.getElementById('day-input')?.value || "";
@@ -649,7 +673,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const title = (comment && comment.trim() !== "") ? comment.trim() : "";
 
             if (y && m && d) {
-                HistoryModule.save(`${y}/${m}/${d}`, title);
+                // ★ 現在保持しているAI鑑定結果（もしあれば）を一緒に保存する
+                const aiResultToSave = typeof currentLoadedHistoryResult !== 'undefined' ? currentLoadedHistoryResult : "";
+                
+                HistoryModule.save(`${y}/${m}/${d}`, title, aiResultToSave);
                 HistoryModule.render();
             }
         });
