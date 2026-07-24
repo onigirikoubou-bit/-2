@@ -61,12 +61,21 @@ const isValidDate = (year, month, day) => {
 // 3. 履歴管理モジュール (HistoryModule)
 // ==========================================
 const HistoryModule = {
-    // データを保存して画面更新（AI鑑定結果も一緒に保存できるように引数 result を追加）
-    save: (date, comment, result = "") => {
+    // データを保存して画面更新
+    save: (date, comment, result = "", compatResult = "") => {
         let history = JSON.parse(localStorage.getItem('searchHistory') || '[]');
-        // result があれば含めて保存、なければ空文字
-        history.unshift({ date, comment, result: result, timestamp: Date.now() });
-        history = history.slice(0, 5);
+        
+        // もし直近の同じ日付の履歴があればそこに上書きするか、新規にunshiftするか
+        // ここでは安全に先頭に追加、または必要に応じてプロパティを持たせます
+        history.unshift({ 
+            date, 
+            comment, 
+            result: result,           // 個人鑑定のAI結果
+            compatResult: compatResult, // ★相性診断のAI結果を分ける！
+            timestamp: Date.now() 
+        });
+        
+        history = history.slice(0, 5); // 最大5件
         localStorage.setItem('searchHistory', JSON.stringify(history));
         HistoryModule.render();
     },
@@ -118,14 +127,13 @@ const HistoryModule = {
         const history = data ? JSON.parse(data) : [];
         const h = history[selected.value];
 
-        // 日付解析
+        // 日付解析＆フォーム反映
         const matches = h.date.match(/(\d+)\/(\d+)\/(\d+)/);
         if (matches) {
             document.getElementById('year-input').value = matches[1];
             document.getElementById('month-input').value = matches[2];
             document.getElementById('day-input').value = matches[3];
             
-            // コメント反映
             const commentInput = document.getElementById('comment-input');
             if (commentInput) {
                 commentInput.value = h.comment || "";
@@ -135,6 +143,31 @@ const HistoryModule = {
                 performCalculation();
             }
         }
+
+        // ==========================================
+        // ★ 個人鑑定と相性診断のボタン表示コントロール
+        // ==========================================
+        const personalActionArea = document.getElementById('history-action-area'); // 個人鑑定用ボタンのエリア
+        const compatActionArea = document.getElementById('compat-action-area');     // 相性診断用ボタンのエリア（新規作成推奨）
+
+        // 1. 個人鑑定結果の判定
+        if (h && h.result) {
+            currentLoadedHistoryResult = h.result;
+            if (personalActionArea) personalActionArea.style.display = 'block';
+        } else {
+            currentLoadedHistoryResult = "";
+            if (personalActionArea) personalActionArea.style.display = 'none';
+        }
+
+        // 2. 相性診断結果の判定（相手側・相性結果へのアクセス用）
+        if (h && h.compatResult) {
+            currentLoadedCompatResult = h.compatResult; // 相性用のグローバル変数
+            if (compatActionArea) compatActionArea.style.display = 'block';
+        } else {
+            currentLoadedCompatResult = "";
+            if (compatActionArea) compatActionArea.style.display = 'none';
+        }
+    }
 
         // ==========================================
         // ★ ここから下が今回追加する「AI鑑定結果の復元とボタン表示」の処理
@@ -1564,4 +1597,15 @@ function saveKanteiHistory(type, primaryData, resultText, partnerData = null) {
 
     // 保存
     localStorage.setItem(STORAGE_KEY, JSON.stringify(historyList));
+}
+
+// 相性診断のAI結果が得られたときの保存処理の例
+function saveCompatResultToCurrentHistory(compatResultText) {
+    let history = JSON.parse(localStorage.getItem('searchHistory') || '[]');
+    if (history.length > 0) {
+        // 一番上の履歴の compatResult に相性結果をセット（個人鑑定の result は保護される）
+        history[0].compatResult = compatResultText;
+        localStorage.setItem('searchHistory', JSON.stringify(history));
+        console.log("【保存成功】最新の履歴に相性診断結果を紐づけました！");
+    }
 }
