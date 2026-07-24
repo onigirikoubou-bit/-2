@@ -325,10 +325,14 @@ h1 {
                     AIに鑑定を依頼する
                 </button>
                 <!-- 履歴から読み込んだときに表示・有効化する「AI鑑定結果を再表示するボタン」の例 -->
-<div id="history-action-area" style="margin-top: 10px; display: block;">
-    <button onclick="showAiResultFromHistory()" style="padding: 8px 15px; background: #2b6cb0; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9em;">
-        💬 AI鑑定結果
-    </button>
+<!-- 個人鑑定結果を見るボタンのエリア -->
+<div id="history-action-area" style="display: none; margin-top: 10px;">
+    <button type="button" onclick="showAiResultFromHistory()" style="padding: 8px 15px; font-size: 14px; cursor: pointer;">💬 個人鑑定のAI結果を見る</button>
+</div>
+
+<!-- ★ 相性診断結果を見るボタンのエリア（ここを追加） -->
+<div id="compat-action-area" style="display: none; margin-top: 10px;">
+    <button type="button" onclick="showCompatResultFromHistory()" style="padding: 8px 15px; font-size: 14px; cursor: pointer; background-color: #e6fffa; border: 1px solid #319795;">💖 相性診断のAI結果を見る</button>
 </div>
 
             </div>
