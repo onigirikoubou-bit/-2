@@ -737,19 +737,64 @@ async function saveResultHandler() {
     `;
     container.appendChild(infoHeader);
 
+    // ==========================================
+    // 1. まず「aiPartElement」をここで作成する
+    // ==========================================
+    let aiHtmlContent = "";
+    const chatContainer = document.getElementById('ai-chat-messages');
+    if (chatContainer && chatContainer.innerText.trim() !== "") {
+        aiHtmlContent = chatContainer.innerHTML;
+    } else if (typeof currentLoadedHistoryResult !== 'undefined' && currentLoadedHistoryResult) {
+        aiHtmlContent = currentLoadedHistoryResult.replace(/\n/g, '<br>');
+    }
+
+    let aiPartElement = null;
+    if (aiHtmlContent) {
+        aiPartElement = document.createElement('div');
+        aiPartElement.style.cssText = `
+            position: relative;
+            /* ★ 枠線の幅を少し狭くする (550px ➔ 530px) */
+            width: 530px; 
+            /* ★ 枠線を右に寄せ、画像の左端との間に適度な隙間を作る (マイナスをプラスや0にする) */
+            margin-left: 10px; 
+            margin-top: 20px; 
+            margin-bottom: 20px; 
+            /* ★ 左側の広すぎた隙間を狭くする（上 右 下 左：15px 15px 15px 15px） */
+            padding: 15px; 
+            background: #ffffff; 
+            border: 1px solid #d1d5db; 
+            border-radius: 8px; 
+            font-size: 12pt; 
+            line-height: 1.6; 
+            color: #1f2937;
+            box-sizing: border-box;
+            word-break: break-all;
+        `;
+        aiPartElement.innerHTML = `
+            <div style="font-weight: bold; font-size: 13pt; margin-bottom: 10px; border-bottom: 2px solid #e5e7eb; padding-bottom: 5px; color: #374151;">
+                【AI鑑定結果】
+            </div>
+            <div>${aiHtmlContent}</div>
+        `;
+    }
+
     // 5. 各パーツの追加
     const parts = [
         originalArea.querySelector('.main-area'),
         document.getElementById('shugoshin-result'),
         document.getElementById('body-map'),
-        document.querySelector('.side-area')
+        document.querySelector('.side-area'),
+        aiPartElement // ここで先ほど作ったパーツを無事に参照できる！
     ];
 
     parts.forEach(part => {
         if (part) {
-            const clone = part.cloneNode(true);
-            const titleEl = clone.querySelector('#display-title');
+            // 要素が既存のDOMノードか、新規作成したDIVかによって処理を分岐
+            const clone = (part instanceof HTMLElement && part.parentNode) ? part.cloneNode(true) : part;
+            
+            const titleEl = clone.querySelector ? clone.querySelector('#display-title') : null;
             if (titleEl) titleEl.style.display = 'none'; // 重複タイトルを隠す
+            
             clone.style.display = 'block';
             clone.style.marginBottom = '20px';
             container.appendChild(clone);
@@ -1032,8 +1077,6 @@ function reflectData(name, type) {
 
 // 過去履歴ボタンから呼び出される関数
 
-
-// 1. 履歴一覧を表示する関数（ご提示いただいたコードの改修版）
 function showHistoryList() {
     // 履歴データの取得（※お使いのストレージキーが 'sanmeigaku_all_history' の場合はそちらに合わせてください）
     const data = localStorage.getItem('searchHistory');
