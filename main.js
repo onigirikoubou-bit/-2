@@ -127,6 +127,8 @@ const HistoryModule = {
         const history = data ? JSON.parse(data) : [];
         const h = history[selected.value];
 
+        if (!h) return;
+
         // 日付解析＆フォーム反映
         const matches = h.date.match(/(\d+)\/(\d+)\/(\d+)/);
         if (matches) {
@@ -145,29 +147,18 @@ const HistoryModule = {
         }
 
         // ==========================================
-        // ★ 個人鑑定と相性診断のボタン表示コントロール
+        // 個人鑑定のAI結果ボタンの表示・非表示コントロールのみ
         // ==========================================
-        const personalActionArea = document.getElementById('history-action-area'); // 個人鑑定用ボタンのエリア
-        const compatActionArea = document.getElementById('compat-action-area');     // 相性診断用ボタンのエリア
+        const actionArea = document.getElementById('history-action-area'); 
 
-        // 1. 個人鑑定結果の判定
-        if (h && h.result) {
+        if (h.result) {
             currentLoadedHistoryResult = h.result;
-            if (personalActionArea) personalActionArea.style.display = 'block';
-            console.log("【成功】履歴から個人鑑定のAI結果を復元しました。");
+            if (actionArea) actionArea.style.display = 'block';
+            console.log("✅ 個人鑑定のAI結果ボタンを表示しました。");
         } else {
             currentLoadedHistoryResult = "";
-            if (personalActionArea) personalActionArea.style.display = 'none';
-        }
-
-        // 2. 相性診断結果の判定
-        if (h && h.compatResult) {
-            currentLoadedCompatResult = h.compatResult; // 相性用のグローバル変数
-            if (compatActionArea) compatActionArea.style.display = 'block';
-            console.log("【成功】履歴から相性診断のAI結果を復元しました。");
-        } else {
-            currentLoadedCompatResult = "";
-            if (compatActionArea) compatActionArea.style.display = 'none';
+            if (actionArea) actionArea.style.display = 'none';
+            console.log("🚫 この履歴には個人鑑定のAI結果がありません。");
         }
     }
 };
@@ -1506,7 +1497,7 @@ async function requestAiConsultation() {
         console.log("鑑定結果受信:", data);
 
         const resultText = data.result || data.message || "鑑定結果を取得しました。";
-
+        
         // ★ここで localStorage の一番新しい履歴（先頭）に AI結果を書き込む！
         const rawData = localStorage.getItem('searchHistory');
         let historyArray = rawData ? JSON.parse(rawData) : [];
