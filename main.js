@@ -1651,3 +1651,120 @@ function saveKanteiHistory(type, primaryData, resultText, partnerData = null) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(historyList));
 }
 
+async function downloadCompatImage() {
+    console.log("【相性画像出力】処理を開始します...");
+
+    // 1. 一時的なオフスクリーン（非表示）の画像生成用コンテナを作成
+    const container = document.createElement('div');
+    container.style.cssText = `
+        position: absolute;
+        left: -9999px;
+        top: 0;
+        width: 590px;
+        background: #fcfbf9;
+        padding: 20px;
+        box-sizing: border-box;
+        font-family: sans-serif;
+    `;
+
+    // 2. タイトル要素の作成
+    const titleEl = document.createElement('div');
+    titleEl.innerHTML = `<h2 style="text-align: center; font-size: 16pt; color: #374151; margin-bottom: 20px; border-bottom: 2px solid #d1d5db; padding-bottom: 8px;">四柱推命 相性診断書</h2>`;
+    container.appendChild(titleEl);
+
+    // ==========================================
+    // 3. 本人と相手の命式を「左右に並べる」エリアの作成
+    // ==========================================
+    const meishikiContainer = document.createElement('div');
+    meishikiContainer.style.cssText = `
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 20px;
+        width: 100%;
+        box-sizing: border-box;
+    `;
+
+    // 本人の命式要素と、お相手の命式要素を取得して複製
+    // （※お使いの環境に合わせてセレクタ名を必要に応じて調整してください）
+    const selfArea = document.querySelector('.main-area') || document.querySelector('#self-meishiki');
+    const partnerArea = document.querySelector('#partner-main-area') || document.querySelector('.partner-area');
+
+    if (selfArea && partnerArea) {
+        const selfClone = selfArea.cloneNode(true);
+        const partnerClone = partnerArea.cloneNode(true);
+
+        selfClone.style.cssText = "width: 48%; box-sizing: border-box; margin: 0;";
+        partnerClone.style.cssText = "width: 48%; box-sizing: border-box; margin: 0;";
+
+        meishikiContainer.appendChild(selfClone);
+        meishikiContainer.appendChild(partnerClone);
+        container.appendChild(meishikiContainer);
+    } else {
+        alert("本人またはお相手の命式データが見つかりませんでした。");
+        return;
+    }
+
+    // ==========================================
+    // 4. 相性診断のAI結果パーツの作成（先ほど保持した専用変数から取得）
+    // ==========================================
+    let compatHtmlContent = typeof window.tempCompatResultText !== 'undefined' ? window.tempCompatResultText : "";
+
+    if (compatHtmlContent) {
+        const compatPartElement = document.createElement('div');
+        compatPartElement.style.cssText = `
+            width: 530px;
+            margin: 0 auto;
+            padding: 15px;
+            background: #ffffff;
+            border: 1px solid #bbf7d0;
+            border-radius: 8px;
+            font-size: 12pt;
+            line-height: 1.6;
+            color: #1f2937;
+            box-sizing: border-box;
+            word-break: break-all;
+        `;
+        compatPartElement.innerHTML = `
+            <div style="font-weight: bold; font-size: 13pt; margin-bottom: 10px; border-bottom: 2px solid #bbf7d0; padding-bottom: 5px; color: #166534;">
+                【相性診断AI結果】
+            </div>
+            <div>${compatHtmlContent.replace(/\n/g, '<br>')}</div>
+        `;
+        container.appendChild(compatPartElement);
+    }
+
+    // 5. 画面外に一時配置して html2canvas で画像化
+    document.body.appendChild(container);
+
+    try {
+        const canvas = await html2canvas(container, {
+            scale: 2,
+            width: 590,
+            backgroundColor: "#fcfbf9"
+        });
+
+        canvas.toBlob(blob => {
+            if (!blob) return;
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `相性診断書_${Date.now()}.jpg`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            // 一時コンテナの削除
+            document.body.removeChild(container);
+            console.log("【相性画像出力】ダウンロードが完了しました！");
+        }, 'image/jpeg', 0.95);
+
+    } catch (err) {
+        console.error("画像生成エラー:", err);
+        alert("相性診断画像の生成に失敗しました。");
+        if (container.parentNode) {
+            document.body.removeChild(container);
+        }
+    }
+}
