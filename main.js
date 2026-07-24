@@ -31,6 +31,9 @@ let tempPartnerData = null;
 // --- 履歴リストを保持する大元の変数をグローバルに定義 ---
 let historyList = [];
 
+// 現在選択されている履歴のAI結果を一時保持する変数
+let currentLoadedHistoryResult = "";
+
 function updateHistoryUI() {
     const listEl = document.getElementById('history-list');
     listEl.innerHTML = ''; 
@@ -1000,8 +1003,7 @@ function reflectData(name, type) {
 }
 
 // 過去履歴ボタンから呼び出される関数
-// 現在選択されている履歴のAI結果を一時保持する変数
-let currentLoadedHistoryResult = "";
+
 
 // 1. 履歴一覧を表示する関数（ご提示いただいたコードの改修版）
 function showHistoryList() {
@@ -1038,12 +1040,13 @@ function showHistoryList() {
 
 // 5. ボタンが押されたとき、下半分のウインドウにAI鑑定結果を表示する関数
 function showAiResultFromHistory() {
+    // 保持している変数の中に文字が入っているかチェック
     if (!currentLoadedHistoryResult) {
         alert('この履歴には保存されたAI鑑定結果がありません。');
         return;
     }
 
-    // UIを上下分割モードに切り替え
+    // 1. 上下分割モードに切り替え（下ペインを表示）
     const topPane = document.getElementById('top-pane');
     const bottomPane = document.getElementById('bottom-pane');
     
@@ -1053,7 +1056,7 @@ function showAiResultFromHistory() {
         topPane.style.overflowY = 'auto';
     }
 
-    // 下半ペインのチャットエリアに結果を描画
+    // 2. 下半ペインのチャットエリアに保持していた結果を描画
     const chatContainer = document.getElementById('ai-chat-messages');
     if (chatContainer) {
         chatContainer.innerHTML = `
@@ -1080,20 +1083,15 @@ function closeBottomPane() {
     }
 }
 
-// --- 履歴の項目をクリックして命式を復元し、AI結果ボタンを制御する関数 ---
+// 履歴をクリックしたときの関数
 function reflectHistory(index) {
     const data = localStorage.getItem('searchHistory');
     const history = data ? JSON.parse(data) : [];
     const h = history[index];
-    
-    // ★これを追加
-    console.log("【デバッグ】クリックされた履歴データの全容:", h);
-    console.log("【デバッグ】この中の result:", h ? h.result : "データなし");
-
 
     if (!h) return;
 
-    // 1. 日付をフォームへ戻す（既存の処理）
+    // 1. フォームへ値を戻す処理
     const parts = h.date.split('/');
     if (parts.length >= 3) {
         document.getElementById('year-input').value = parts[0];
@@ -1106,24 +1104,24 @@ function reflectHistory(index) {
         commentInput.value = h.comment || "";
     }
 
-    // 2. 再計算を実行して画面に命式を現れさせる（既存の処理）
     if (typeof performCalculation === 'function') {
         performCalculation();
     }
 
-    // 3. AI鑑定結果（result）が保存されている履歴の場合のみ、ボタンを表示する
-    // （今回はHTML側に「#history-action-area」を置いていらっしゃるので、そちらの表示/非表示を切り替えます）
+    // 2. 【ここが一番重要！】AI鑑定結果の有無を判定し、確実に変数に保持する
     const actionArea = document.getElementById('history-action-area');
     
     if (h.result) {
-        currentLoadedHistoryResult = h.result; // AI結果を一時変数に保持
+        // 保存されているAI結果を確実にグローバル変数へ渡す
+        currentLoadedHistoryResult = h.result; 
+        
         if (actionArea) actionArea.style.display = 'block'; // ボタンを表示
+        console.log("【成功】AI結果をメモリに保持しました。文字数:", h.result.length);
     } else {
-        currentLoadedHistoryResult = "";
+        currentLoadedHistoryResult = ""; // ない場合は空にする
         if (actionArea) actionArea.style.display = 'none'; // ボタンを隠す
+        console.log("この履歴にはAI結果がありません");
     }
-    
-    console.log("履歴を反映しました。AI結果の有無:", !!h.result);
 }
 
 // 1. 性格診断を表示する関数
