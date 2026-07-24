@@ -1051,21 +1051,30 @@ function closeBottomPane() {
 }
 
 // 1. 履歴をクリックしたときの処理
+// 履歴の項目をクリックしたときの処理（localStorageから直接AI結果をログ出力）
 function reflectHistory(index) {
+    console.log("=== 【デバッグ】履歴クリック（取込）開始 index:", index, " ===");
+
+    // 1. ローカルストレージから履歴一覧を取得
     const data = localStorage.getItem('searchHistory');
     const history = data ? JSON.parse(data) : [];
     const h = history[index];
 
     if (!h) {
-        console.log("エラー: 該当する履歴データが見つかりません。index:", index);
+        console.log("❌ エラー: 指定されたインデックスの履歴データが存在しません。");
         return;
     }
 
-    console.log("--- 履歴クリック検知 ---");
-    console.log("選ばれた履歴データ:", h);
-    console.log("このデータ内の h.result の中身:", h.result);
+    console.log("📂 取得した履歴オブジェクト全体のデータ:", h);
 
-    // ① 日付をフォームへ戻す処理
+    // 2. ★ここでローカルストレージ（または履歴データ内）のAI鑑定結果を強制的にコンソールに出力
+    if (h.result) {
+        console.log("✨ 【大成功】この履歴に保存されているAI鑑定結果のテキスト:", h.result);
+    } else {
+        console.log("⚠️ 【注意】この履歴データの中には 'result'（AI鑑定結果）が含まれていません。空っぽ、または保存されていない可能性があります。");
+    }
+
+    // 3. 既存の日付復元などの処理
     const parts = h.date.split('/');
     if (parts.length >= 3) {
         const yearInput = document.getElementById('year-input');
@@ -1085,47 +1094,54 @@ function reflectHistory(index) {
         performCalculation();
     }
 
-    // ② AI鑑定結果（result）の有無でボタンを切り替える処理
+    // 4. ボタンの表示・非表示の切り替え
     const actionArea = document.getElementById('history-action-area');
-    
     if (h.result) {
         currentLoadedHistoryResult = h.result;
-        if (actionArea) {
-            actionArea.style.display = 'block'; // ボタンを表示
-        }
-        console.log("【判定】AI結果が存在するため、ボタンを表示しました。保持した文字数:", currentLoadedHistoryResult.length);
+        if (actionArea) actionArea.style.display = 'block';
+        console.log("✅ AI結果ボタンを表示しました。");
     } else {
         currentLoadedHistoryResult = "";
-        if (actionArea) {
-            actionArea.style.display = 'none'; // ボタンを隠す
-        }
-        console.log("【判定】この履歴にはAI結果がありません。ボタンを非表示にします。");
+        if (actionArea) actionArea.style.display = 'none';
+        console.log("🚫 AI結果ボタンを非表示にしました。");
     }
 }
 
-// 2. 「AI鑑定結果」ボタンが押されたときの処理（★二重の安全策付き）
+// 2. 「AI鑑定結果」ボタンが押されたときの処理（完全強制サルベージ版）
 function showAiResultFromHistory() {
     console.log("--- AI結果ボタンが押されました ---");
-    console.log("現在保持されている currentLoadedHistoryResult:", currentLoadedHistoryResult);
 
-    // 変数が空でも、念のため localStorage の一番新しい履歴や結果から直接サルベージを試みる
-    let targetResult = currentLoadedHistoryResult;
-    if (!targetResult) {
+    let targetResult = "";
+
+    // ① まずブラウザの localStorage から直接「result」プロパティを持っている最新の履歴を強制検索する
+    try {
         const data = localStorage.getItem('searchHistory');
-        const history = data ? JSON.parse(data) : [];
-        const found = history.find(item => item && item.result);
-        if (found) {
-            targetResult = found.result;
-            console.log("【救出成功】メモリから消えていたためlocalStorageから直接取得しました。");
+        if (data) {
+            const history = JSON.parse(data);
+            // 履歴の配列の中から、resultが存在するものを探す
+            const found = history.find(item => item && item.result && item.result.trim() !== "");
+            if (found) {
+                targetResult = found.result;
+                console.log("【強制サルベージ成功】localStorageから直接AI結果を取得しました！文字数:", targetResult.length);
+            }
         }
+    } catch (e) {
+        console.error("localStorageの読み込みエラー:", e);
     }
 
+    // ② それでも見つからない場合は、グローバル変数も一応見てみる
+    if (!targetResult && typeof currentLoadedHistoryResult !== 'undefined' && currentLoadedHistoryResult) {
+        targetResult = currentLoadedHistoryResult;
+        console.log("【グローバル変数から取得】");
+    }
+
+    // ③ それでも空っぽの場合のみエラー（アラート）を出す
     if (!targetResult) {
         alert('この履歴には保存されたAI鑑定結果がありません。');
         return;
     }
 
-    // UIを上下分割モードに切り替え
+    // ④ UIを上下分割モードに切り替え
     const topPane = document.getElementById('top-pane');
     const bottomPane = document.getElementById('bottom-pane');
     
@@ -1135,7 +1151,7 @@ function showAiResultFromHistory() {
         topPane.style.overflowY = 'auto';
     }
 
-    // 下半ペインのチャットエリアに結果を描画
+    // ⑤ 下半ペインのチャットエリアに結果を描画
     const chatContainer = document.getElementById('ai-chat-messages');
     if (chatContainer) {
         chatContainer.innerHTML = `
