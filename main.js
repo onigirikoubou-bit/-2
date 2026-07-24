@@ -1136,63 +1136,65 @@ function reflectHistory(index) {
 
 // 2. 「AI鑑定結果」ボタンが押されたときの処理（完全強制サルベージ版）
 function showAiResultFromHistory() {
-    console.log("--- AI結果ボタンが押されました ---");
+    console.log("--- AI結果ボタンが押されました (ステップ1) ---");
 
-    let targetResult = "";
-
-    // ① まずブラウザの localStorage から直接「result」プロパティを持っている最新の履歴を強制検索する
     try {
-        const data = localStorage.getItem('searchHistory');
-        if (data) {
-            const history = JSON.parse(data);
-            // 履歴の配列の中から、resultが存在するものを探す
-            const found = history.find(item => item && item.result && item.result.trim() !== "");
-            if (found) {
-                targetResult = found.result;
-                console.log("【強制サルベージ成功】localStorageから直接AI結果を取得しました！文字数:", targetResult.length);
+        // 1. 変数とストレージのチェック
+        let targetResult = typeof currentLoadedHistoryResult !== 'undefined' ? currentLoadedHistoryResult : "";
+        
+        if (!targetResult) {
+            console.log("メモリにないためlocalStorageから検索します (ステップ2)");
+            const data = localStorage.getItem('searchHistory');
+            if (data) {
+                const history = JSON.parse(data);
+                const found = history.find(item => item && item.result && item.result.trim() !== "");
+                if (found) {
+                    targetResult = found.result;
+                    console.log("localStorageからの救出成功！");
+                }
             }
         }
-    } catch (e) {
-        console.error("localStorageの読み込みエラー:", e);
-    }
 
-    // ② それでも見つからない場合は、グローバル変数も一応見てみる
-    if (!targetResult && typeof currentLoadedHistoryResult !== 'undefined' && currentLoadedHistoryResult) {
-        targetResult = currentLoadedHistoryResult;
-        console.log("【グローバル変数から取得】");
-    }
+        console.log("表示するテキストの文字数:", targetResult ? targetResult.length : 0);
 
-    // ③ それでも空っぽの場合のみエラー（アラート）を出す
-    if (!targetResult) {
-        alert('この履歴には保存されたAI鑑定結果がありません。');
-        return;
-    }
+        if (!targetResult) {
+            alert('この履歴には保存されたAI鑑定結果がありません。');
+            return;
+        }
 
-    // ④ UIを上下分割モードに切り替え
-    const topPane = document.getElementById('top-pane');
-    const bottomPane = document.getElementById('bottom-pane');
-    
-    if (bottomPane) bottomPane.style.display = 'flex';
-    if (topPane) {
-        topPane.style.maxHeight = '40vh'; 
-        topPane.style.overflowY = 'auto';
-    }
+        console.log("UIの切り替えを開始します (ステップ3)");
 
-    // ⑤ 下半ペインのチャットエリアに結果を描画
-    const chatContainer = document.getElementById('ai-chat-messages');
-    if (chatContainer) {
-        chatContainer.innerHTML = `
-            <div style="background: #f9f9f9; padding: 15px; border-radius: 8px; border: 1px solid #ddd; font-size: 0.95em; line-height: 1.6;">
-                <div style="font-size: 0.8em; color: #666; margin-bottom: 8px; border-bottom: 1px dashed #ccc; padding-bottom: 4px; display: flex; justify-content: space-between; align-items: center;">
-                    <span>【過去のAI鑑定結果の控え】</span>
-                    <button onclick="closeBottomPane()" style="background:none; border:none; color:#e53e3e; cursor:pointer; font-weight:bold; font-size: 1.1em;">✖ 閉じる</button>
+        // 2. UIを上下分割モードに切り替え
+        const topPane = document.getElementById('top-pane');
+        const bottomPane = document.getElementById('bottom-pane');
+        
+        if (bottomPane) bottomPane.style.display = 'flex';
+        if (topPane) {
+            topPane.style.maxHeight = '40vh'; 
+            topPane.style.overflowY = 'auto';
+        }
+
+        console.log("チャットコンテナを探します (ステップ4)");
+
+        // 3. 下半ペインのチャットエリアに結果を描画
+        const chatContainer = document.getElementById('ai-chat-messages');
+        if (chatContainer) {
+            chatContainer.innerHTML = `
+                <div style="background: #f9f9f9; padding: 15px; border-radius: 8px; border: 1px solid #ddd; font-size: 0.95em; line-height: 1.6;">
+                    <div style="font-size: 0.8em; color: #666; margin-bottom: 8px; border-bottom: 1px dashed #ccc; padding-bottom: 4px; display: flex; justify-content: space-between; align-items: center;">
+                        <span>【過去のAI鑑定結果の控え】</span>
+                        <button onclick="closeBottomPane()" style="background:none; border:none; color:#e53e3e; cursor:pointer; font-weight:bold; font-size: 1.1em;">✖ 閉じる</button>
+                    </div>
+                    ${targetResult.replace(/\n/g, '<br>')}
                 </div>
-                ${targetResult.replace(/\n/g, '<br>')}
-            </div>
-        `;
-        console.log("【成功】下半ペインにAI鑑定結果を描画しました！");
-    } else {
-        console.log("エラー: #ai-chat-messages が見つかりません。");
+            `;
+            console.log("【大成功】下半ペインにAI鑑定結果を描画しました！");
+        } else {
+            console.error("エラー: #ai-chat-messages がHTML上に存在しません！");
+        }
+
+    } catch (err) {
+        console.error("❌ 予期せぬエラーが発生しました:", err);
     }
 }
 
