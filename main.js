@@ -1572,25 +1572,34 @@ async function sendFollowUpMessage() {
 
         const data = await response.json();
         if (data.reply || data.result) {
-            appendChatMessage('ai', data.reply || data.result);
+            const aiText = data.reply || data.result;
+            
+            // 1. 画面のチャットエリアにAIの返答を表示
+            appendChatMessage('ai', aiText);
+
+            // ==========================================
+            // ★ 2. ここで「相性診断の結果」を最新の履歴に保存する！
+            // ==========================================
+            const rawData = localStorage.getItem('searchHistory');
+            let historyArray = rawData ? JSON.parse(rawData) : [];
+
+            if (historyArray.length > 0) {
+                // ダミーではなく、実際にAIから返ってきた 'aiText' を保存します
+                historyArray[0].compatResult = aiText;
+                localStorage.setItem('searchHistory', JSON.stringify(historyArray));
+                console.log("【保存成功】相性診断の実際のAI結果を履歴に紐づけました！文字数:", aiText.length);
+                
+                // 履歴リストの表示を更新
+                if (typeof HistoryModule !== 'undefined' && HistoryModule.render) {
+                    HistoryModule.render();
+                }
+            }
+            // ==========================================
         }
     } catch (e) {
         console.error(e);
         appendChatMessage('ai', '通信エラーが発生しました。');
     }
-}
-
-// 相性診断結果を受け取った直後の処理に以下を組み込む
-const compatResultText = "（ここに取得した相性診断の文章が入る）";
-
-const rawData = localStorage.getItem('searchHistory');
-let historyArray = rawData ? JSON.parse(rawData) : [];
-
-if (historyArray.length > 0) {
-    // 一番上の履歴の compatResult に相性結果を保存
-    historyArray[0].compatResult = compatResultText;
-    localStorage.setItem('searchHistory', JSON.stringify(historyArray));
-    console.log("【保存成功】最新の履歴に相性診断の結果を紐づけました！");
 }
 
 /**
@@ -1632,3 +1641,21 @@ function saveKanteiHistory(type, primaryData, resultText, partnerData = null) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(historyList));
 }
 
+// 相性診断の計算・AI結果取得が完了したタイミングで呼ぶ関数
+function saveCompatHistory(partnerName, compatResultText) {
+    let history = JSON.parse(localStorage.getItem('searchHistory') || '[]');
+    
+    // もし直近の履歴があれば、そこに相性結果をドッキングする
+    if (history.length > 0) {
+        history[0].compatResult = compatResultText;
+        // パートナーの名前も一緒に保存しておくと、誰との相性か分かりやすくなります
+        history[0].partnerName = partnerName || "お相手"; 
+        
+        localStorage.setItem('searchHistory', JSON.stringify(history));
+        
+        if (typeof HistoryModule !== 'undefined' && HistoryModule.render) {
+            HistoryModule.render();
+        }
+        console.log("【相性履歴保存完了】");
+    }
+}
