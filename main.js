@@ -1084,19 +1084,30 @@ function closeBottomPane() {
 }
 
 // 履歴をクリックしたときの関数
+// 1. 履歴をクリックしたときの処理
 function reflectHistory(index) {
     const data = localStorage.getItem('searchHistory');
     const history = data ? JSON.parse(data) : [];
     const h = history[index];
 
-    if (!h) return;
+    if (!h) {
+        console.log("エラー: 該当する履歴データが見つかりません。index:", index);
+        return;
+    }
 
-    // 1. フォームへ値を戻す処理
+    console.log("--- 履歴クリック検知 ---");
+    console.log("選ばれた履歴データ:", h);
+    console.log("このデータ内の h.result の中身:", h.result);
+
+    // ① 日付をフォームへ戻す処理（お手元の既存の書き方に合わせてください）
     const parts = h.date.split('/');
     if (parts.length >= 3) {
-        document.getElementById('year-input').value = parts[0];
-        document.getElementById('month-input').value = parseInt(parts[1], 10);
-        document.getElementById('day-input').value = parseInt(parts[2], 10);
+        const yearInput = document.getElementById('year-input');
+        const monthInput = document.getElementById('month-input');
+        const dayInput = document.getElementById('day-input');
+        if (yearInput) yearInput.value = parts[0];
+        if (monthInput) monthInput.value = parseInt(parts[1], 10);
+        if (dayInput) dayInput.value = parseInt(parts[2], 10);
     }
     
     const commentInput = document.getElementById('comment-input');
@@ -1108,19 +1119,62 @@ function reflectHistory(index) {
         performCalculation();
     }
 
-    // 2. 【ここが一番重要！】AI鑑定結果の有無を判定し、確実に変数に保持する
+    // ② AI鑑定結果（result）の有無でボタンを切り替える処理
     const actionArea = document.getElementById('history-action-area');
     
     if (h.result) {
-        // 保存されているAI結果を確実にグローバル変数へ渡す
-        currentLoadedHistoryResult = h.result; 
+        // グローバル変数に結果を代入
+        currentLoadedHistoryResult = h.result;
         
-        if (actionArea) actionArea.style.display = 'block'; // ボタンを表示
-        console.log("【成功】AI結果をメモリに保持しました。文字数:", h.result.length);
+        if (actionArea) {
+            actionArea.style.display = 'block'; // ボタンを表示
+        }
+        console.log("【判定】AI結果が存在するため、ボタンを表示しました。保持した文字数:", currentLoadedHistoryResult.length);
     } else {
-        currentLoadedHistoryResult = ""; // ない場合は空にする
-        if (actionArea) actionArea.style.display = 'none'; // ボタンを隠す
-        console.log("この履歴にはAI結果がありません");
+        currentLoadedHistoryResult = "";
+        if (actionArea) {
+            actionArea.style.display = 'none'; // ボタンを隠す
+        }
+        console.log("【判定】この履歴にはAI結果がありません。ボタンを非表示にします。");
+    }
+}
+
+// 2. 「AI鑑定結果」ボタンが押されたときの処理
+function showAiResultFromHistory() {
+    console.log("--- AI結果ボタンが押されました ---");
+    console.log("現在保持されている currentLoadedHistoryResult:", currentLoadedHistoryResult);
+
+    // ここで空かどうかチェックしているため、もしメッセージが出るならこの直前で値が消えています
+    if (!currentLoadedHistoryResult) {
+        alert('この履歴には保存されたAI鑑定結果がありません。');
+        return;
+    }
+
+    // UIを上下分割モードに切り替え
+    const topPane = document.getElementById('top-pane');
+    const bottomPane = document.getElementById('bottom-pane');
+    
+    if (bottomPane) bottomPane.style.display = 'flex';
+    if (topPane) {
+        topPane.style.maxHeight = '40vh'; 
+        topPane.style.overflowY = 'auto';
+    }
+
+    // 下半ペインのチャットエリアに結果を描画
+    const chatContainer = document.getElementById('ai-chat-messages');
+    if (chatContainer) {
+        chatContainer.innerHTML = `
+            <div style="background: #f9f9f9; padding: 15px; border-radius: 8px; border: 1px solid #ddd; font-size: 0.95em; line-height: 1.6;">
+                <div style="font-size: 0.8em; color: #666; margin-bottom: 8px; border-bottom: 1px dashed #ccc; padding-bottom: 4px; display: flex; justify-content: space-between; align-items: center;">
+                    <span>【過去のAI鑑定結果の控え】</span>
+                    <button onclick="closeBottomPane()" style="background:none; border:none; color:#e53e3e; cursor:pointer; font-weight:bold; font-size: 1.1em;">✖ 閉じる</button>
+                </div>
+                ${currentLoadedHistoryResult.replace(/\n/g, '<br>')}
+            </div>
+        `;
+        console.log("【成功】下半ペインにAI鑑定結果を描画しました！");
+    } else {
+        console.log("エラー: #ai-chat-messages が見つかりません。");
     }
 }
 
