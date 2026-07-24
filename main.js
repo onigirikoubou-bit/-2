@@ -1658,14 +1658,21 @@ function saveKanteiHistory(type, primaryData, resultText, partnerData = null) {
 }
 
 async function downloadCompatImage() {
-    console.log("【相性画像出力】処理を開始します...");
+    console.log("【相性画像出力】左右それぞれのデータを反映させて処理を開始します...");
 
-    // 1. 隠しコンテナ (左右並びにするため、少し広めの幅820pxに設定)
+    // 1. 現在の画面に入力されている値（元に戻すため）を控えておく
+    const originalYear = document.getElementById('year-input')?.value;
+    const originalMonth = document.getElementById('month-input')?.value;
+    const originalDay = document.getElementById('day-input')?.value;
+    const originalGender = document.querySelector('input[name="gender"]:checked')?.value;
+    const originalComment = document.getElementById('comment-input')?.value;
+
+    // 2. 隠しコンテナ (幅820px)
     const container = document.createElement('div');
     container.style.cssText = "position:absolute; left:-9999px; top:0; width:820px; background:#fcfbf9; padding:20px; display:block; box-sizing:border-box; font-family: sans-serif;";
     document.body.appendChild(container);
 
-    // 2. ヘッダーの組み立て（算命学 相性診断書）
+    // 3. ヘッダーの組み立て
     const infoHeader = document.createElement('div');
     infoHeader.style.cssText = "margin-bottom:20px; border-bottom:2px solid #333; padding-bottom:10px; text-align:center;";
     infoHeader.innerHTML = `
@@ -1674,24 +1681,20 @@ async function downloadCompatImage() {
     `;
     container.appendChild(infoHeader);
 
-    // 3. 1人目と2人目のパーツをまとめる「左右並びの親レイアウト」を作成
+    // 4. 左右並びの親レイアウトを作成
     const flexWrapper = document.createElement('div');
     flexWrapper.style.cssText = "display:flex; justify-content:space-between; gap:15px; margin-bottom:20px; width:100%; box-sizing:border-box;";
 
-    // --- 補助関数：指定されたデータを使って「1人分の鑑定結果カラム（BOX）」をまるごと複製・生成する ---
-    function createPersonColumn(titleText, targetData) {
+    // --- 1人分の一連のDOMパーツをごっそり取得するヘルパー関数 ---
+    function captureCurrentParts(titleText) {
         const personCol = document.createElement('div');
         personCol.style.cssText = "width:48%; background:#ffffff; border:1px solid #cbd5e1; border-radius:8px; padding:12px; box-sizing:border-box;";
 
-        // カラムのタイトル（例: 【1人目：ご本人】）
         const colTitle = document.createElement('div');
         colTitle.style.cssText = "font-weight:bold; font-size:15px; color:#1e3a8a; border-bottom:2px solid #3b82f6; padding-bottom:6px; margin-bottom:12px; text-align:center;";
         colTitle.textContent = titleText;
         personCol.appendChild(colTitle);
 
-        // ※本来ならここでターゲットのデータ（selfData / partnerData）をDOMに一時反映させてから取得するのが確実ですが、
-        // 簡易的に一人用のパーツ（.main-area 等）をそのままクローンして流し込みます。
-        // （画面上の現在の要素または保存されたDOM要素をここに配置）
         const parts = [
             document.querySelector('.main-area'),
             document.getElementById('shugoshin-result'),
@@ -1710,22 +1713,56 @@ async function downloadCompatImage() {
                 personCol.appendChild(clone);
             }
         });
-
         return personCol;
     }
 
-    // 【重要】ここで1人目と2人目のカラムを作成してラッパーに入れる
-    // ※もし相性実行時に画面の入力値が2人目に切り替わっている場合、
-    // 1人目は保存しておいた window.tempCompatSelfData、2人目は今の画面データ、のように切り替える必要があります。
-    // 今回はシンプルに、現在の画面の構成要素を左右に2つ並べる形をベースにしています。
-    const col1 = createPersonColumn('1人目（ご本人）', window.tempCompatSelfData);
-    const col2 = createPersonColumn('2人目（お相手）', window.tempCompatPartnerData);
+    try {
+        // --- 【A】1人目（ご本人）の画面を一時的に作ってキャプチャする ---
+        if (window.tempCompatSelfData) {
+            // 保存しておいた1人目のデータを入力欄に流し込む
+            // (※プロパティ名は実際のデータ構造に合わせてください。例: year, month, day, gender 等)
+            if(window.tempCompatSelfData.year) document.getElementById('year-input').value = window.tempCompatSelfData.year;
+            if(window.tempCompatSelfData.month) document.getElementById('month-input').value = window.tempCompatSelfData.month;
+            if(window.tempCompatSelfData.day) document.getElementById('day-input').value = window.tempCompatSelfData.day;
+            if(window.tempCompatSelfData.gender) {
+                const gRadio = document.querySelector(`input[name="gender"][value="${window.tempCompatSelfData.gender}"]`);
+                if(gRadio) gRadio.checked = true;
+            }
+            if (typeof performCalculation === 'function') performCalculation();
+        }
+        const col1 = captureCurrentParts('1人目（ご本人）');
 
-    flexWrapper.appendChild(col1);
-    flexWrapper.appendChild(col2);
-    container.appendChild(flexWrapper);
+        // --- 【B】2人目（お相手）の画面を一時的に作ってキャプチャする ---
+        if (window.tempCompatPartnerData) {
+            if(window.tempCompatPartnerData.year) document.getElementById('year-input').value = window.tempCompatPartnerData.year;
+            if(window.tempCompatPartnerData.month) document.getElementById('month-input').value = window.tempCompatPartnerData.month;
+            if(window.tempCompatPartnerData.day) document.getElementById('day-input').value = window.tempCompatPartnerData.day;
+            if(window.tempCompatPartnerData.gender) {
+                const gRadio = document.querySelector(`input[name="gender"][value="${window.tempCompatPartnerData.gender}"]`);
+                if(gRadio) gRadio.checked = true;
+            }
+            if (typeof performCalculation === 'function') performCalculation();
+        }
+        const col2 = captureCurrentParts('2人目（お相手）');
 
-    // 4. 相性診断のAI結果パーツの作成（先ほど保持した変数から取得）
+        flexWrapper.appendChild(col1);
+        flexWrapper.appendChild(col2);
+        container.appendChild(flexWrapper);
+
+    } finally {
+        // --- 【C】画面の入力値と表示をもとの状態に必ず復元する ---
+        if(originalYear) document.getElementById('year-input').value = originalYear;
+        if(originalMonth) document.getElementById('month-input').value = originalMonth;
+        if(originalDay) document.getElementById('day-input').value = originalDay;
+        if(originalGender) {
+            const gRadio = document.querySelector(`input[name="gender"][value="${originalGender}"]`);
+            if(gRadio) gRadio.checked = true;
+        }
+        if(originalComment) document.getElementById('comment-input').value = originalComment;
+        if (typeof performCalculation === 'function') performCalculation(); // 元の画面に戻す
+    }
+
+    // 5. 相性診断のAI結果パーツの追加
     let aiHtmlContent = typeof window.tempCompatResultText !== 'undefined' ? window.tempCompatResultText : "";
 
     if (aiHtmlContent) {
@@ -1753,7 +1790,7 @@ async function downloadCompatImage() {
         container.appendChild(aiPartElement);
     }
 
-    // 5. html2canvas で画像化してダウンロード
+    // 6. html2canvas で画像化してダウンロード
     try {
         const canvas = await html2canvas(container, {
             scale: 2,
