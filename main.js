@@ -1472,6 +1472,24 @@ async function requestAiConsultation() {
         }
     }
 
+    // --- 相性診断の場合の処理（AIにリクエストを送る直前あたりに配置） ---
+    
+    // 実際にAIに送るためのデータをまとめているオブジェクト（変数名は実際の環境に合わせて調整してください）
+    const aiPayload = {
+        menuType: menuType,
+        selfData: meishikiData,        // 1人目のデータ
+        partnerData: partnerMeishikiData // 2人目のデータ
+    };
+
+    // ★ ここでコンソールに詳細を出力する
+    console.log("========================================");
+    console.log("【AI送信データ デバッグログ】");
+    console.log("送信メニュー:", menuType);
+    console.log("1人目 (selfData):", meishikiData);
+    console.log("2人目 (partnerData):", partnerMeishikiData);
+    console.log("送信オブジェクトまるごと:", aiPayload);
+    console.log("========================================");
+
     // --- ★【復活】UIを上下分割モードに切り替え ---
     const topPane = document.getElementById('top-pane');
     const bottomPane = document.getElementById('bottom-pane');
