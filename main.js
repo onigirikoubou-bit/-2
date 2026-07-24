@@ -1453,6 +1453,12 @@ async function requestAiConsultation() {
         // 2人目には、いま画面に入力されている最新のデータを入れる
         partnerMeishikiData = collectCurrentMeishikiData();
 
+        // ==========================================
+        // ★【追加】画像出力用に、この2人のデータを一時保存しておく！
+        // ==========================================
+        window.tempCompatSelfData = meishikiData;
+        window.tempCompatPartnerData = partnerMeishikiData;
+
         if (!meishikiData || !partnerMeishikiData) {
             alert('お相手または1人目の命式データが見つかりません。お手数ですが、別の方の生年月日を入力して算出してしてから再度お試しください。');
             return;
@@ -1652,7 +1658,7 @@ function saveKanteiHistory(type, primaryData, resultText, partnerData = null) {
 }
 
 async function downloadCompatImage() {
-    console.log("【相性画像出力】処理を開始します...");
+    console.log("【相性画像出力】データから直接カードを組み立てて処理を開始します...");
 
     // 1. 一時的なオフスクリーン（非表示）の画像生成用コンテナを作成
     const container = document.createElement('div');
@@ -1660,73 +1666,89 @@ async function downloadCompatImage() {
         position: absolute;
         left: -9999px;
         top: 0;
-        width: 590px;
+        width: 620px;
         background: #fcfbf9;
-        padding: 20px;
+        padding: 25px;
         box-sizing: border-box;
         font-family: sans-serif;
     `;
 
     // 2. タイトル要素の作成
     const titleEl = document.createElement('div');
-    titleEl.innerHTML = `<h2 style="text-align: center; font-size: 16pt; color: #374151; margin-bottom: 20px; border-bottom: 2px solid #d1d5db; padding-bottom: 8px;">四柱推命 相性診断書</h2>`;
+    titleEl.innerHTML = `<h2 style="text-align: center; font-size: 18pt; color: #1f2937; margin-bottom: 20px; border-bottom: 2px solid #d1d5db; padding-bottom: 8px; font-weight: bold;">四柱推命 相性診断書</h2>`;
     container.appendChild(titleEl);
 
-    // ==========================================
-    // 3. 本人と相手の命式を「左右に並べる」エリアの作成
-    // ==========================================
+    // 3. 保持しているデータを取り出す
+    const selfData = window.tempCompatSelfData;
+    const partnerData = window.tempCompatPartnerData;
+
+    if (!selfData || !partnerData) {
+        alert("相性診断のデータが見つかりませんでした。再度相性診断を行ってからお試しください。");
+        if (container.parentNode) document.body.removeChild(container);
+        return;
+    }
+
+    // 4. 左右の命式カードをHTMLで自作する関数
+    function buildCardHtml(title, data) {
+        // dataの中身（プロパティ名）は実際の環境に合わせて調整可能ですが、安全にフォールバック（-）をつけています
+        const name = data.name || data.title || title;
+        const nengaju = data.nengaju || data.nen || '-';
+        const getsujagu = data.getsujagu || data.getsu || '-';
+        const jitsujagu = data.jitsujagu || data.jitsu || '-';
+        
+        return `
+            <div style="width: 48%; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px; box-sizing: border-box; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                <div style="font-weight: bold; font-size: 12pt; color: #1e3a8a; border-bottom: 2px solid #3b82f6; padding-bottom: 5px; margin-bottom: 10px; text-align: center;">
+                    ${title}：${name}
+                </div>
+                <div style="font-size: 10pt; color: #374151; line-height: 1.6;">
+                    <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #e2e8f0; padding: 4px 0;">
+                        <span style="font-weight: bold; color: #64748b;">年柱:</span> <span>${nengaju}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #e2e8f0; padding: 4px 0;">
+                        <span style="font-weight: bold; color: #64748b;">月柱:</span> <span>${getsujagu}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; padding: 4px 0;">
+                        <span style="font-weight: bold; color: #64748b;">日柱:</span> <span>${jitsujagu}</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    // 5. 左右並びのコンテナを作成して追加
     const meishikiContainer = document.createElement('div');
     meishikiContainer.style.cssText = `
         display: flex;
         justify-content: space-between;
-        gap: 10px;
+        gap: 15px;
         margin-bottom: 20px;
         width: 100%;
         box-sizing: border-box;
     `;
+    meishikiContainer.innerHTML = buildCardHtml('1人目（ご本人）', selfData) + buildCardHtml('2人目（お相手）', partnerData);
+    container.appendChild(meishikiContainer);
 
-    // 本人の命式要素と、お相手の命式要素を取得して複製
-    // （※お使いの環境に合わせてセレクタ名を必要に応じて調整してください）
-    const selfArea = document.querySelector('.main-area') || document.querySelector('#self-meishiki');
-    const partnerArea = document.querySelector('#partner-main-area') || document.querySelector('.partner-area');
-
-    if (selfArea && partnerArea) {
-        const selfClone = selfArea.cloneNode(true);
-        const partnerClone = partnerArea.cloneNode(true);
-
-        selfClone.style.cssText = "width: 48%; box-sizing: border-box; margin: 0;";
-        partnerClone.style.cssText = "width: 48%; box-sizing: border-box; margin: 0;";
-
-        meishikiContainer.appendChild(selfClone);
-        meishikiContainer.appendChild(partnerClone);
-        container.appendChild(meishikiContainer);
-    } else {
-        alert("本人またはお相手の命式データが見つかりませんでした。");
-        return;
-    }
-
-    // ==========================================
-    // 4. 相性診断のAI結果パーツの作成（先ほど保持した専用変数から取得）
-    // ==========================================
+    // 6. 相性診断のAI結果パーツの作成
     let compatHtmlContent = typeof window.tempCompatResultText !== 'undefined' ? window.tempCompatResultText : "";
 
     if (compatHtmlContent) {
         const compatPartElement = document.createElement('div');
         compatPartElement.style.cssText = `
-            width: 530px;
+            width: 100%;
             margin: 0 auto;
             padding: 15px;
             background: #ffffff;
             border: 1px solid #bbf7d0;
             border-radius: 8px;
-            font-size: 12pt;
-            line-height: 1.6;
+            font-size: 11pt;
+            line-height: 1.7;
             color: #1f2937;
             box-sizing: border-box;
             word-break: break-all;
         `;
         compatPartElement.innerHTML = `
-            <div style="font-weight: bold; font-size: 13pt; margin-bottom: 10px; border-bottom: 2px solid #bbf7d0; padding-bottom: 5px; color: #166534;">
+            <div style="font-weight: bold; font-size: 12pt; margin-bottom: 10px; border-bottom: 2px solid #bbf7d0; padding-bottom: 5px; color: #166534;">
                 【相性診断AI結果】
             </div>
             <div>${compatHtmlContent.replace(/\n/g, '<br>')}</div>
@@ -1734,13 +1756,13 @@ async function downloadCompatImage() {
         container.appendChild(compatPartElement);
     }
 
-    // 5. 画面外に一時配置して html2canvas で画像化
+    // 7. 画面外に一時配置して html2canvas で画像化
     document.body.appendChild(container);
 
     try {
         const canvas = await html2canvas(container, {
             scale: 2,
-            width: 590,
+            width: 620,
             backgroundColor: "#fcfbf9"
         });
 
