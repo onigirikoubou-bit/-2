@@ -148,52 +148,29 @@ const HistoryModule = {
         // ★ 個人鑑定と相性診断のボタン表示コントロール
         // ==========================================
         const personalActionArea = document.getElementById('history-action-area'); // 個人鑑定用ボタンのエリア
-        const compatActionArea = document.getElementById('compat-action-area');     // 相性診断用ボタンのエリア（新規作成推奨）
+        const compatActionArea = document.getElementById('compat-action-area');     // 相性診断用ボタンのエリア
 
         // 1. 個人鑑定結果の判定
         if (h && h.result) {
             currentLoadedHistoryResult = h.result;
             if (personalActionArea) personalActionArea.style.display = 'block';
+            console.log("【成功】履歴から個人鑑定のAI結果を復元しました。");
         } else {
             currentLoadedHistoryResult = "";
             if (personalActionArea) personalActionArea.style.display = 'none';
         }
 
-        // 2. 相性診断結果の判定（相手側・相性結果へのアクセス用）
+        // 2. 相性診断結果の判定
         if (h && h.compatResult) {
             currentLoadedCompatResult = h.compatResult; // 相性用のグローバル変数
             if (compatActionArea) compatActionArea.style.display = 'block';
+            console.log("【成功】履歴から相性診断のAI結果を復元しました。");
         } else {
             currentLoadedCompatResult = "";
             if (compatActionArea) compatActionArea.style.display = 'none';
         }
     }
-
-        // ==========================================
-        // ★ ここから下が今回追加する「AI鑑定結果の復元とボタン表示」の処理
-        // ==========================================
-        const actionArea = document.getElementById('history-action-area');
-
-        if (h && h.result) {
-            // グローバル変数にAI結果を確実にセット
-            currentLoadedHistoryResult = h.result;
-            
-            if (actionArea) {
-                actionArea.style.display = 'block'; // ボタンを表示する
-            }
-            console.log("【成功】履歴からAI鑑定結果を復元しました。文字数:", h.result.length);
-        } else {
-            // AI結果がない場合は空にしてボタンを隠す
-            currentLoadedHistoryResult = "";
-            
-            if (actionArea) {
-                actionArea.style.display = 'none'; // ボタンを非表示にする
-            }
-            console.log("【情報】この履歴には保存されたAI鑑定結果はありません。");
-        }
-        // ==========================================
-    }
-}; // ← これが唯一の締めくくりです。これより下に「initImportButton」などは置かないでください。
+};
 
 function setEto(elementId, etoText) {
     const container = document.getElementById(elementId);
