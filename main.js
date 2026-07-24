@@ -34,6 +34,9 @@ let historyList = [];
 // 現在選択されている履歴のAI結果を一時保持する変数
 let currentLoadedHistoryResult = "";
 
+// 相性診断のAI結果を一時的に覚えておく専用の箱
+let tempCompatResultText = "";
+
 function updateHistoryUI() {
     const listEl = document.getElementById('history-list');
     listEl.innerHTML = ''; 
@@ -62,7 +65,7 @@ const isValidDate = (year, month, day) => {
 // ==========================================
 const HistoryModule = {
     // データを保存して画面更新
-    save: (date, comment, result = "", compatResult = "") => {
+    save: (date, comment, result = "") => {
         let history = JSON.parse(localStorage.getItem('searchHistory') || '[]');
         
         // もし直近の同じ日付の履歴があればそこに上書きするか、新規にunshiftするか
@@ -71,7 +74,6 @@ const HistoryModule = {
             date, 
             comment, 
             result: result,           // 個人鑑定のAI結果
-            compatResult: compatResult, // ★相性診断のAI結果を分ける！
             timestamp: Date.now() 
         });
         
@@ -1092,8 +1094,8 @@ function showHistoryList() {
 
     let html = `<ul style="list-style: none; padding: 0;">`;
     history.forEach((h, index) => {
-        // 相性診断か個人鑑定かのラベル分けや、タイトルの調整
-        const titleText = h.comment || (h.type === 'compatibility' ? '相性診断' : '個人鑑定');
+        // ラベル分けや、タイトルの調整
+        const titleText = h.comment || '個人鑑定';
         
         html += `
             <li style="margin-bottom:10px; border-bottom:1px solid #ccc; padding:8px; cursor:pointer; background:#fff; border-radius:4px;" 
@@ -1499,20 +1501,36 @@ async function requestAiConsultation() {
 
         const resultText = data.result || data.message || "鑑定結果を取得しました。";
         
-        // ★ここで localStorage の一番新しい履歴（先頭）に AI結果を書き込む！
-        const rawData = localStorage.getItem('searchHistory');
-        let historyArray = rawData ? JSON.parse(rawData) : [];
+        // ==========================================
+        // ★ 修正：menuType が相性診断かどうかで処理を分岐する！
+        // ==========================================
+        if (menuType && menuType.includes('compatibility')) {
+            // 【相性診断の場合】
+            // 1. 個人鑑定の履歴は絶対に上書きせず、相性専用の変数に結果を退避する
+            window.tempCompatResultText = resultText; 
+            console.log("【相性診断】専用変数にAI結果を保持しました。");
 
-        if (historyArray.length > 0) {
-            // 先頭の履歴データに result をドッキング
-            historyArray[0].result = resultText;
-            // もう一度 localStorage に保存し直す
-            localStorage.setItem('searchHistory', JSON.stringify(historyArray));
-            console.log("【保存成功】最新の履歴にAI鑑定結果をドッキングしました！", historyArray[0]);
+            // 2. 相性診断結果の画像保存ボタンを出現させる
+            const compatActionArea = document.getElementById('compat-image-action-area');
+            if (compatActionArea) {
+                compatActionArea.style.display = 'block';
+            }
+
+        } else {
+            // 【通常の個人鑑定の場合】
+            // 従来の通り、最新の履歴（先頭）にAI結果をドッキングする
+            const rawData = localStorage.getItem('searchHistory');
+            let historyArray = rawData ? JSON.parse(rawData) : [];
+
+            if (historyArray.length > 0) {
+                historyArray[0].result = resultText;
+                localStorage.setItem('searchHistory', JSON.stringify(historyArray));
+                console.log("【保存成功】最新の履歴にAI鑑定結果をドッキングしました！", historyArray[0]);
+            }
         }
-        // ------------------------------------------------------------------
+        // ==========================================
 
-        // --- サーバーからの結果をチャットエリアに描画する ---
+        // --- サーバーからの結果をチャットエリアに描画する（共通） ---
         if (chatContainer) {
             chatContainer.innerHTML = `
                 <div style="background: #f9f9f9; padding: 15px; border-radius: 8px; border: 1px solid #ddd; font-size: 0.95em; line-height: 1.6;">
