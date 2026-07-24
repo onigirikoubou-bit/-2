@@ -1676,21 +1676,31 @@ function saveKanteiHistory(type, primaryData, resultText, partnerData = null) {
 }
 
 async function downloadCompatImage() {
-    console.log("【相性画像出力】左右それぞれのデータを反映させて処理を開始します...");
+    console.log("【相性画像出力】処理を開始します...");
 
-    // 1. 現在の画面に入力されている値（元に戻すため）を控えておく
+    // 1. 現在の画面に入力されている値を控えておく（後で元に戻すため）
     const originalYear = document.getElementById('year-input')?.value;
     const originalMonth = document.getElementById('month-input')?.value;
     const originalDay = document.getElementById('day-input')?.value;
     const originalGender = document.querySelector('input[name="gender"]:checked')?.value;
     const originalComment = document.getElementById('comment-input')?.value;
 
-    // 2. 隠しコンテナ (幅820px)
+    // 2. 文字列から「年・月・日」を安全に抽出するヘルパー関数
+    function parseBirthDate(birthDateStr) {
+        if (!birthDateStr) return { year: '', month: '', day: '' };
+        const match = birthDateStr.match(/(\d{4})年(\d{1,2})月(\d{1,2})日/);
+        if (match) {
+            return { year: match[1], month: match[2], day: match[3] };
+        }
+        return { year: '', month: '', day: '' };
+    }
+
+    // 3. 隠しコンテナ (幅820px)
     const container = document.createElement('div');
     container.style.cssText = "position:absolute; left:-9999px; top:0; width:820px; background:#fcfbf9; padding:20px; display:block; box-sizing:border-box; font-family: sans-serif;";
     document.body.appendChild(container);
 
-    // 3. ヘッダーの組み立て
+    // 4. ヘッダーの組み立て
     const infoHeader = document.createElement('div');
     infoHeader.style.cssText = "margin-bottom:20px; border-bottom:2px solid #333; padding-bottom:10px; text-align:center;";
     infoHeader.innerHTML = `
@@ -1699,11 +1709,11 @@ async function downloadCompatImage() {
     `;
     container.appendChild(infoHeader);
 
-    // 4. 左右並びの親レイアウトを作成
+    // 5. 左右並びの親レイアウトを作成
     const flexWrapper = document.createElement('div');
     flexWrapper.style.cssText = "display:flex; justify-content:space-between; gap:15px; margin-bottom:20px; width:100%; box-sizing:border-box;";
 
-    // --- 1人分の一連のDOMパーツをごっそり取得するヘルパー関数 ---
+    // --- 画面上の現在の算命学パーツをごっそり取得するヘルパー関数 ---
     function captureCurrentParts(titleText) {
         const personCol = document.createElement('div');
         personCol.style.cssText = "width:48%; background:#ffffff; border:1px solid #cbd5e1; border-radius:8px; padding:12px; box-sizing:border-box;";
@@ -1735,29 +1745,33 @@ async function downloadCompatImage() {
     }
 
     try {
-        // --- 【A】1人目（ご本人）の画面を一時的に作ってキャプチャする ---
-        if (window.tempCompatSelfData) {
-            // 保存しておいた1人目のデータを入力欄に流し込む
-            // (※プロパティ名は実際のデータ構造に合わせてください。例: year, month, day, gender 等)
-            if(window.tempCompatSelfData.year) document.getElementById('year-input').value = window.tempCompatSelfData.year;
-            if(window.tempCompatSelfData.month) document.getElementById('month-input').value = window.tempCompatSelfData.month;
-            if(window.tempCompatSelfData.day) document.getElementById('day-input').value = window.tempCompatSelfData.day;
-            if(window.tempCompatSelfData.gender) {
-                const gRadio = document.querySelector(`input[name="gender"][value="${window.tempCompatSelfData.gender}"]`);
-                if(gRadio) gRadio.checked = true;
+        // --- 【A】1人目（ご本人）のデータを画面に反映して計算・キャプチャ ---
+        if (window.tempCompatSelfData && window.tempCompatSelfData.birthDate) {
+            const p1 = parseBirthDate(window.tempCompatSelfData.birthDate);
+            if (p1.year) document.getElementById('year-input').value = p1.year;
+            if (p1.month) document.getElementById('month-input').value = p1.month;
+            if (p1.day) document.getElementById('day-input').value = p1.day;
+
+            if (window.tempCompatSelfData.gender) {
+                const gRadio = document.querySelector(`input[name="gender"][value="${window.tempCompatSelfData.gender === '男性' ? 'male' : 'female'}"]`) ||
+                               document.querySelector(`input[name="gender"][value="${window.tempCompatSelfData.gender}"]`);
+                if (gRadio) gRadio.checked = true;
             }
             if (typeof performCalculation === 'function') performCalculation();
         }
         const col1 = captureCurrentParts('1人目（ご本人）');
 
-        // --- 【B】2人目（お相手）の画面を一時的に作ってキャプチャする ---
-        if (window.tempCompatPartnerData) {
-            if(window.tempCompatPartnerData.year) document.getElementById('year-input').value = window.tempCompatPartnerData.year;
-            if(window.tempCompatPartnerData.month) document.getElementById('month-input').value = window.tempCompatPartnerData.month;
-            if(window.tempCompatPartnerData.day) document.getElementById('day-input').value = window.tempCompatPartnerData.day;
-            if(window.tempCompatPartnerData.gender) {
-                const gRadio = document.querySelector(`input[name="gender"][value="${window.tempCompatPartnerData.gender}"]`);
-                if(gRadio) gRadio.checked = true;
+        // --- 【B】2人目（お相手）のデータを画面に反映して計算・キャプチャ ---
+        if (window.tempCompatPartnerData && window.tempCompatPartnerData.birthDate) {
+            const p2 = parseBirthDate(window.tempCompatPartnerData.birthDate);
+            if (p2.year) document.getElementById('year-input').value = p2.year;
+            if (p2.month) document.getElementById('month-input').value = p2.month;
+            if (p2.day) document.getElementById('day-input').value = p2.day;
+
+            if (window.tempCompatPartnerData.gender) {
+                const gRadio = document.querySelector(`input[name="gender"][value="${window.tempCompatPartnerData.gender === '男性' ? 'male' : 'female'}"]`) ||
+                               document.querySelector(`input[name="gender"][value="${window.tempCompatPartnerData.gender}"]`);
+                if (gRadio) gRadio.checked = true;
             }
             if (typeof performCalculation === 'function') performCalculation();
         }
@@ -1769,18 +1783,18 @@ async function downloadCompatImage() {
 
     } finally {
         // --- 【C】画面の入力値と表示をもとの状態に必ず復元する ---
-        if(originalYear) document.getElementById('year-input').value = originalYear;
-        if(originalMonth) document.getElementById('month-input').value = originalMonth;
-        if(originalDay) document.getElementById('day-input').value = originalDay;
-        if(originalGender) {
+        if (originalYear) document.getElementById('year-input').value = originalYear;
+        if (originalMonth) document.getElementById('month-input').value = originalMonth;
+        if (originalDay) document.getElementById('day-input').value = originalDay;
+        if (originalGender) {
             const gRadio = document.querySelector(`input[name="gender"][value="${originalGender}"]`);
-            if(gRadio) gRadio.checked = true;
+            if (gRadio) gRadio.checked = true;
         }
-        if(originalComment) document.getElementById('comment-input').value = originalComment;
-        if (typeof performCalculation === 'function') performCalculation(); // 元の画面に戻す
+        if (originalComment) document.getElementById('comment-input').value = originalComment;
+        if (typeof performCalculation === 'function') performCalculation();
     }
 
-    // 5. 相性診断のAI結果パーツの追加
+    // 6. 相性診断のAI結果パーツの追加
     let aiHtmlContent = typeof window.tempCompatResultText !== 'undefined' ? window.tempCompatResultText : "";
 
     if (aiHtmlContent) {
@@ -1808,7 +1822,7 @@ async function downloadCompatImage() {
         container.appendChild(aiPartElement);
     }
 
-    // 6. html2canvas で画像化してダウンロード
+    // 7. html2canvas で画像化してダウンロード
     try {
         const canvas = await html2canvas(container, {
             scale: 2,
