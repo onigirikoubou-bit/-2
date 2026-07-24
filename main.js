@@ -1038,39 +1038,6 @@ function showHistoryList() {
 }
 
 
-// 5. ボタンが押されたとき、下半分のウインドウにAI鑑定結果を表示する関数
-function showAiResultFromHistory() {
-    // 保持している変数の中に文字が入っているかチェック
-    if (!currentLoadedHistoryResult) {
-        alert('この履歴には保存されたAI鑑定結果がありません。');
-        return;
-    }
-
-    // 1. 上下分割モードに切り替え（下ペインを表示）
-    const topPane = document.getElementById('top-pane');
-    const bottomPane = document.getElementById('bottom-pane');
-    
-    if (bottomPane) bottomPane.style.display = 'flex';
-    if (topPane) {
-        topPane.style.maxHeight = '40vh'; 
-        topPane.style.overflowY = 'auto';
-    }
-
-    // 2. 下半ペインのチャットエリアに保持していた結果を描画
-    const chatContainer = document.getElementById('ai-chat-messages');
-    if (chatContainer) {
-        chatContainer.innerHTML = `
-            <div style="background: #f9f9f9; padding: 15px; border-radius: 8px; border: 1px solid #ddd; font-size: 0.95em; line-height: 1.6;">
-                <div style="font-size: 0.8em; color: #666; margin-bottom: 8px; border-bottom: 1px dashed #ccc; padding-bottom: 4px; display: flex; justify-content: space-between; align-items: center;">
-                    <span>【過去のAI鑑定結果の控え】</span>
-                    <button onclick="closeBottomPane()" style="background:none; border:none; color:#e53e3e; cursor:pointer; font-weight:bold; font-size: 1.1em;">✖ 閉じる</button>
-                </div>
-                ${currentLoadedHistoryResult.replace(/\n/g, '<br>')}
-            </div>
-        `;
-    }
-}
-
 // 6. 下半ペインを閉じて元の命式だけの画面に戻す関数
 function closeBottomPane() {
     const bottomPane = document.getElementById('bottom-pane');
@@ -1083,7 +1050,6 @@ function closeBottomPane() {
     }
 }
 
-// 履歴をクリックしたときの関数
 // 1. 履歴をクリックしたときの処理
 function reflectHistory(index) {
     const data = localStorage.getItem('searchHistory');
@@ -1099,7 +1065,7 @@ function reflectHistory(index) {
     console.log("選ばれた履歴データ:", h);
     console.log("このデータ内の h.result の中身:", h.result);
 
-    // ① 日付をフォームへ戻す処理（お手元の既存の書き方に合わせてください）
+    // ① 日付をフォームへ戻す処理
     const parts = h.date.split('/');
     if (parts.length >= 3) {
         const yearInput = document.getElementById('year-input');
@@ -1123,9 +1089,7 @@ function reflectHistory(index) {
     const actionArea = document.getElementById('history-action-area');
     
     if (h.result) {
-        // グローバル変数に結果を代入
         currentLoadedHistoryResult = h.result;
-        
         if (actionArea) {
             actionArea.style.display = 'block'; // ボタンを表示
         }
@@ -1139,13 +1103,24 @@ function reflectHistory(index) {
     }
 }
 
-// 2. 「AI鑑定結果」ボタンが押されたときの処理
+// 2. 「AI鑑定結果」ボタンが押されたときの処理（★二重の安全策付き）
 function showAiResultFromHistory() {
     console.log("--- AI結果ボタンが押されました ---");
     console.log("現在保持されている currentLoadedHistoryResult:", currentLoadedHistoryResult);
 
-    // ここで空かどうかチェックしているため、もしメッセージが出るならこの直前で値が消えています
-    if (!currentLoadedHistoryResult) {
+    // 変数が空でも、念のため localStorage の一番新しい履歴や結果から直接サルベージを試みる
+    let targetResult = currentLoadedHistoryResult;
+    if (!targetResult) {
+        const data = localStorage.getItem('searchHistory');
+        const history = data ? JSON.parse(data) : [];
+        const found = history.find(item => item && item.result);
+        if (found) {
+            targetResult = found.result;
+            console.log("【救出成功】メモリから消えていたためlocalStorageから直接取得しました。");
+        }
+    }
+
+    if (!targetResult) {
         alert('この履歴には保存されたAI鑑定結果がありません。');
         return;
     }
@@ -1169,7 +1144,7 @@ function showAiResultFromHistory() {
                     <span>【過去のAI鑑定結果の控え】</span>
                     <button onclick="closeBottomPane()" style="background:none; border:none; color:#e53e3e; cursor:pointer; font-weight:bold; font-size: 1.1em;">✖ 閉じる</button>
                 </div>
-                ${currentLoadedHistoryResult.replace(/\n/g, '<br>')}
+                ${targetResult.replace(/\n/g, '<br>')}
             </div>
         `;
         console.log("【成功】下半ペインにAI鑑定結果を描画しました！");
