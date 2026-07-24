@@ -1454,16 +1454,16 @@ async function requestAiConsultation() {
 
         const resultText = data.result || data.message || "鑑定結果を取得しました。";
 
-        // --- ★ ここで「最新の履歴データ」にAI鑑定結果をドッキングして保存する ---
-        const storedData = localStorage.getItem('searchHistory');
-        let currentHistory = storedData ? JSON.parse(storedData) : [];
+        // ★ここで localStorage の一番新しい履歴（先頭）に AI結果を書き込む！
+        const rawData = localStorage.getItem('searchHistory');
+        let historyArray = rawData ? JSON.parse(rawData) : [];
 
-        if (currentHistory.length > 0) {
-            // 一番新しく追加された履歴（先頭）に result を書き込む
-            currentHistory[0].result = resultText;
-            // ローカルストレージに上書き保存
-            localStorage.setItem('searchHistory', JSON.stringify(currentHistory));
-            console.log("【保存成功】最新の履歴にAI鑑定結果をドッキングしました！", currentHistory[0]);
+        if (historyArray.length > 0) {
+            // 先頭の履歴データに result をドッキング
+            historyArray[0].result = resultText;
+            // もう一度 localStorage に保存し直す
+            localStorage.setItem('searchHistory', JSON.stringify(historyArray));
+            console.log("【保存成功】最新の履歴にAI鑑定結果をドッキングしました！", historyArray[0]);
         }
         // ------------------------------------------------------------------
 
