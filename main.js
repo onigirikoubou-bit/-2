@@ -1242,48 +1242,6 @@ function showAiResultFromHistory() {
     }
 }
 
-// グローバル変数（相性診断の結果を保持する箱）
-let currentLoadedCompatResult = "";
-
-// 「相性診断のAI結果」ボタンが押されたときの処理
-function showCompatResultFromHistory() {
-    console.log("--- 相性診断のAI結果ボタンが押されました ---");
-    console.log("保持されている currentLoadedCompatResult:", currentLoadedCompatResult);
-
-    let targetResult = currentLoadedCompatResult;
-
-    if (!targetResult) {
-        alert('この履歴には保存された相性診断のAI結果がありません。');
-        return;
-    }
-
-    // UIを上下分割モードに切り替え
-    const topPane = document.getElementById('top-pane');
-    const bottomPane = document.getElementById('bottom-pane');
-    
-    if (bottomPane) bottomPane.style.display = 'flex';
-    if (topPane) {
-        topPane.style.maxHeight = '40vh'; 
-        topPane.style.overflowY = 'auto';
-    }
-
-    // 下半ペインのチャットエリアに相性結果を描画
-    const chatContainer = document.getElementById('ai-chat-messages');
-    if (chatContainer) {
-        chatContainer.innerHTML = `
-            <div style="background: #f0fdf4; padding: 15px; border-radius: 8px; border: 1px solid #bbf7d0; font-size: 0.95em; line-height: 1.6;">
-                <div style="font-size: 0.8em; color: #166534; margin-bottom: 8px; border-bottom: 1px dashed #bbf7d0; padding-bottom: 4px; display: flex; justify-content: space-between; align-items: center;">
-                    <span>【過去の相性診断のAI結果の控え】</span>
-                    <button onclick="closeBottomPane()" style="background:none; border:none; color:#e53e3e; cursor:pointer; font-weight:bold; font-size: 1.1em;">✖ 閉じる</button>
-                </div>
-                ${targetResult.replace(/\n/g, '<br>')}
-            </div>
-        `;
-        console.log("【成功】下半ペインに相性診断のAI結果を描画しました！");
-    } else {
-        console.log("エラー: #ai-chat-messages が見つかりません。");
-    }
-}
 
 // 1. 性格診断を表示する関数
 function showDiagnosis(map) {
@@ -1675,21 +1633,3 @@ function saveKanteiHistory(type, primaryData, resultText, partnerData = null) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(historyList));
 }
 
-// 相性診断の計算・AI結果取得が完了したタイミングで呼ぶ関数
-function saveCompatHistory(partnerName, compatResultText) {
-    let history = JSON.parse(localStorage.getItem('searchHistory') || '[]');
-    
-    // もし直近の履歴があれば、そこに相性結果をドッキングする
-    if (history.length > 0) {
-        history[0].compatResult = compatResultText;
-        // パートナーの名前も一緒に保存しておくと、誰との相性か分かりやすくなります
-        history[0].partnerName = partnerName || "お相手"; 
-        
-        localStorage.setItem('searchHistory', JSON.stringify(history));
-        
-        if (typeof HistoryModule !== 'undefined' && HistoryModule.render) {
-            HistoryModule.render();
-        }
-        console.log("【相性履歴保存完了】");
-    }
-}
