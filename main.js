@@ -81,7 +81,7 @@ const HistoryModule = {
             timestamp: Date.now() 
         });
         
-        history = history.slice(0, 5); // 最大5件
+        history = history.slice(0, 30); // 最大30件
         localStorage.setItem('searchHistory', JSON.stringify(history));
         HistoryModule.render();
     },
@@ -93,22 +93,22 @@ const HistoryModule = {
     const data = localStorage.getItem('searchHistory');
     const history = data ? JSON.parse(data) : [];
 
-    if (historyList.length > 0) {
-    // 一番新しく追加された履歴（先頭のデータ）に、今回のAI鑑定結果を書き込む
-    historyList[0].result = resultText;
-    
-    // 変更した履歴をもう一度 localStorage に保存し直す
-    localStorage.setItem('searchHistory', JSON.stringify(historyList));
-    console.log("【保存成功】最新の履歴にAI鑑定結果をドッキングしました！", historyList[0]);
-}
+    // 履歴が空の場合の処理
+    if (history.length === 0) {
+        list.innerHTML = '<div style="color: #666; padding: 5px;">履歴はありません。</div>';
+        return;
+    }
 
-    // 変数に溜めてから、最後に一度だけ代入する
-    const htmlString = history.map((h, index) => {
+    // ★ 画面に表示する件数を「最大5件」に絞り込む
+    const displayHistory = history.slice(0, 5);
+
+    // ★ displayHistory を使ってHTMLを一気に組み立てる
+    const htmlString = displayHistory.map((h, index) => {
         const commentPart = (h.comment && h.comment.trim() !== "") ? ` - ${h.comment}` : "";
         return `
             <div class="history-item" style="display: flex; align-items: center; margin-bottom: 5px; width: 100%;">
                 <input type="radio" name="history-radio" value="${index}" id="h${index}">
-                <label for="h${index}" style="margin-left: 8px; flex-grow: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                <label for="h${index}" style="margin-left: 8px; flex-grow: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer;">
                     <strong>${h.date}</strong>
                     <span style="display: inline-block; max-width: 400px; overflow: hidden; text-overflow: ellipsis; vertical-align: bottom;">
                         ${commentPart}
@@ -117,7 +117,7 @@ const HistoryModule = {
             </div>`;
     }).join('');
 
-    // ここで一気に書き換える
+    // 画面に反映
     list.innerHTML = htmlString;
 },
 
@@ -1073,9 +1073,8 @@ function reflectData(name, type) {
 // 過去履歴ボタンから呼び出される関数
 
 function showHistoryList() {
-    // 履歴データの取得（※お使いのストレージキーが 'sanmeigaku_all_history' の場合はそちらに合わせてください）
     const data = localStorage.getItem('searchHistory');
-    const history = data ? JSON.parse(data) : [];
+    const history = data ? JSON.parse(data) : []; // ← ここは全データ（最大30件）を取得
     
     const displayArea = document.getElementById('figure-display-area');
     if (!displayArea) return;
@@ -1085,9 +1084,9 @@ function showHistoryList() {
         return;
     }
 
+    // （全データをそのままループさせる）
     let html = `<ul style="list-style: none; padding: 0;">`;
     history.forEach((h, index) => {
-        // ラベル分けや、タイトルの調整
         const titleText = h.comment || '個人鑑定';
         
         html += `
@@ -1131,7 +1130,11 @@ function reflectHistory(index) {
         return;
     }
 
-    console.log("📂 取得した履歴オブジェクト全体のデータ:", h);
+    // --- ★追加：クリックされたら画面の上部へスムーズにスクロールする ---
+    window.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+    });
 
     // 2. ★ここでローカルストレージ（または履歴データ内）のAI鑑定結果を強制的にコンソールに出力
     if (h.result) {
@@ -1390,6 +1393,7 @@ function collectCurrentMeishikiData() {
     const genderVal = document.querySelector('input[name="gender"]:checked')?.value;
     const gender = genderVal === 'male' ? '男性' : (genderVal === 'female' ? '女性' : '不明');
     const age = document.getElementById('age-display')?.innerText || "";
+    const comment = document.getElementById('comment-input')?.value || "";
 
     // 画面に表示されている結果要素からテキストを安全に取得するヘルパー
     const getText = (id) => document.getElementById(id)?.innerText || "";
@@ -1398,6 +1402,7 @@ function collectCurrentMeishikiData() {
         birthDate: `${y}年${m}月${d}日`,
         gender: gender,
         age: age,
+        comment: comment,
         // 各種干支
         eto: {
             day: getText('day-eto'),
@@ -1731,34 +1736,35 @@ async function downloadCompatImage() {
     const selfData = window.tempCompatSelfData || {};
     const partnerData = window.tempCompatPartnerData || {};
 
+    // 1人目のメモ候補（comment, name, memo などのプロパティがあればそれを拾う）
     const selfComment = (selfData.comment || selfData.name || selfData.memo || "").trim();
-    const partnerComment = (partnerData.comment || partnerData.name || partnerData.memo || document.getElementById('comment-input')?.value || "").trim();
 
-    // 1人目の誕生日をフォールバック用として取得
-    const selfBirthDateStr = selfData.birthDate || selfData.date || "";
-    const p1Parsed = typeof parseBirthDate === 'function' ? parseBirthDate(selfBirthDateStr) : {};
-    
-    // 1人目の表示名：メモがあればそれ、なければ誕生日、どちらもなければ「1人目」
-    let label1 = selfComment;
-    if (!label1) {
-        if (p1Parsed && p1Parsed.year) {
-            label1 = `${p1Parsed.year}/${p1Parsed.month}/${p1Parsed.day}`;
-        } else if (selfBirthDateStr) {
-            label1 = selfBirthDateStr;
-        } else {
-            label1 = "1人目";
-        }
+    // 1人目の基本情報
+    const selfBirth = selfData.birthDate || ""; 
+    const selfGender = selfData.gender || ""; 
+
+    // 1人目の表示名：メモがあればメモを優先、なければ「生年月日 (性別)」にする
+    let label1 = "";
+    if (selfComment) {
+        label1 = selfComment; // 一人目にメモがあればそれを採用！
+    } else if (selfBirth) {
+        label1 = selfGender ? `${selfBirth} (${selfGender})` : selfBirth;
+    } else {
+        label1 = "1人目";
     }
 
-    // 2人目の表示名：メモがあればそれ、なければ「2人目」
-    const label2 = partnerComment !== "" ? partnerComment : "2人目";
+    // 2人目のメモ（いま画面に入力されているコメント欄）
+    const partnerCommentInput = document.getElementById('comment-input')?.value || "";
+    const partnerComment = (partnerData.comment || partnerData.name || partnerData.memo || partnerCommentInput).trim();
+    
+    const label2 = partnerComment !== "" ? partnerComment : "お相手";
 
     // 結合してタイトルを作成
     const combinedMemo = `${label1} + ${label2}`;
 
     let displayHeaderTitle = `相性診断書・${combinedMemo}`;
     let fileBaseName = `相性診断書・${combinedMemo}`;
-    
+
 
     // 4. ヘッダーの組み立て（メモがあれば先頭・大きく表示）
     const infoHeader = document.createElement('div');
@@ -1775,12 +1781,25 @@ async function downloadCompatImage() {
 
     // --- 画面上の現在の算命学パーツをごっそり取得するヘルパー関数 ---
     function captureCurrentParts(titleText) {
+        let finalTitle = titleText;
+
+    if (titleText.includes('1人目') && window.tempCompatSelfData) {
+        const comment = window.tempCompatSelfData.comment ? window.tempCompatSelfData.comment.trim() : "";
+        const birth = window.tempCompatSelfData.birthDate || "";
+        // メモがあれば「メモ（生年月日）」、なければ生年月日やデフォルト名にする
+        finalTitle = comment ? `${comment}（${birth}）` : (birth ? `1人目（${birth}）` : titleText);
+    } else if (titleText.includes('2人目') && window.tempCompatPartnerData) {
+        const comment = window.tempCompatPartnerData.comment ? window.tempCompatPartnerData.comment.trim() : "";
+        const birth = window.tempCompatPartnerData.birthDate || "";
+        finalTitle = comment ? `${comment}（${birth}）` : (birth ? `2人目（${birth}）` : titleText);
+    }
+
         const personCol = document.createElement('div');
         personCol.style.cssText = "width:48%; background:#ffffff; border:1px solid #cbd5e1; border-radius:8px; padding:12px; box-sizing:border-box;";
 
         const colTitle = document.createElement('div');
         colTitle.style.cssText = "font-weight:bold; font-size:15px; color:#1e3a8a; border-bottom:2px solid #3b82f6; padding-bottom:6px; margin-bottom:12px; text-align:center;";
-        colTitle.textContent = titleText;
+        colTitle.textContent = finalTitle; // ★ 書き換えたタイトルをセット！
         personCol.appendChild(colTitle);
 
         const parts = [
