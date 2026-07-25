@@ -1117,7 +1117,7 @@ function closeBottomPane() {
 }
 
 // 1. 履歴をクリックしたときの処理
-// 履歴の項目をクリックしたときの処理（localStorageから直接AI結果をログ出力）
+// 履歴の項目をクリックしたときの処理（localStorageから直接結果をログ出力）
 function reflectHistory(index) {
     console.log("=== 【デバッグ】履歴クリック（取込）開始 index:", index, " ===");
 
@@ -1430,47 +1430,66 @@ function collectCurrentMeishikiData() {
 async function requestAiConsultation() {
     const menuType = document.getElementById('ai-menu-select').value;
     
-    // --- 1人目（相談者）の計算結果を取得 ---
-    let meishikiData = collectCurrentMeishikiData(); 
+    // --- 1人目（自分・相談者）の計算結果を取得 ---
+    let selfMeishikiData = collectCurrentMeishikiData(); 
 
-    if (!meishikiData) {
+    if (!selfMeishikiData) {
         alert('まずは命式を算出してください。');
         return;
     }
 
     let additionalInfo = {};
     let partnerMeishikiData = null; 
+    let compatibilityTitle = ""; // ★ 相性診断用のタイトル保持用
 
     // --- 相性診断の場合の処理 ---
     if (menuType && menuType.includes('compatibility')) {
         
-        // 1人目には、事前に退避させておいた「tempPartnerData」をセット！
+        // 1. お相手（2人目）のデータとして、いま画面に入力されている最新のデータを取得する
+        partnerMeishikiData = collectCurrentMeishikiData();
+
+        // 2. 1人目（自分）のデータは、事前に退避させておいた「tempPartnerData」またはローカルストレージから復元する
+        let originalSelfData = null;
         if (typeof tempPartnerData !== 'undefined' && tempPartnerData) {
-            meishikiData = tempPartnerData; 
+            originalSelfData = tempPartnerData; 
         } else {
             const savedData = localStorage.getItem('sanmeigaku_previous_meishiki');
             if (savedData) {
                 try {
-                    meishikiData = JSON.parse(savedData);
+                    originalSelfData = JSON.parse(savedData);
                 } catch (e) {
                     console.error("保存データのパースに失敗しました:", e);
                 }
             }
         }
 
-        // 2人目には、いま画面に入力されている最新のデータを入れる
-        partnerMeishikiData = collectCurrentMeishikiData();
-
-        // ==========================================
-        // ★【追加】画像出力用に、この2人のデータを一時保存しておく！
-        // ==========================================
-        window.tempCompatSelfData = meishikiData;
-        window.tempCompatPartnerData = partnerMeishikiData;
-
-        if (!meishikiData || !partnerMeishikiData) {
+        if (!originalSelfData || !partnerMeishikiData) {
             alert('お相手または1人目の命式データが見つかりません。お手数ですが、別の方の生年月日を入力して算出してしてから再度お試しください。');
             return;
         }
+
+        // --- ★ご要望のタイトルを作成：「相性診断書・（一人目のメモ）+（二人目のメモ）」 ---
+        // 一人目のメモ（もしあれば）
+        const selfComment = (originalSelfData.comment && originalSelfData.comment.trim() !== "") 
+            ? originalSelfData.comment.trim() 
+            : `${originalSelfData.year || ''}/${originalSelfData.month || ''}/${originalSelfData.day || ''}`;
+        
+        // 二人目のメモ（いま入力されているコメント欄の値）
+        const partnerCommentInput = document.getElementById('comment-input')?.value || "";
+        const partnerComment = (partnerCommentInput.trim() !== "") 
+            ? partnerCommentInput.trim() 
+            : "お相手";
+
+        compatibilityTitle = `相性診断書・${selfComment} + ${partnerComment}`;
+
+        // 変数を正しい形で入れ替える
+        meishikiData = originalSelfData; // AIリクエスト用に1人目を正しくセット
+
+        // ==========================================
+        // ★ 画像出力用などにこの2人のデータを一時保存しておく
+        // ==========================================
+        window.tempCompatSelfData = meishikiData;
+        window.tempCompatPartnerData = partnerMeishikiData;
 
     } else if (menuType === 'free') {
         additionalInfo.freeQuestion = document.getElementById('ai-free-question')?.value || '';
@@ -1480,13 +1499,12 @@ async function requestAiConsultation() {
         }
     }
 
-    // --- 相性診断の場合の処理（AIにリクエストを送る直前あたりに配置） ---
-    
-    // 実際にAIに送るためのデータをまとめているオブジェクト（変数名は実際の環境に合わせて調整してください）
+    // --- 実際にAIに送るためのデータをまとめているオブジェクト ---
     const aiPayload = {
         menuType: menuType,
-        selfData: meishikiData,        // 1人目のデータ
-        partnerData: partnerMeishikiData // 2人目のデータ
+        selfData: meishikiData,          // 1人目のデータ
+        partnerData: partnerMeishikiData,// 2人目のデータ
+        customTitle: compatibilityTitle  // ★必要であればタイトルも同梱できます
     };
 
     // ★ ここでコンソールに詳細を出力する
