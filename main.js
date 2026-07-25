@@ -68,12 +68,16 @@ const HistoryModule = {
     save: (date, comment, result = "") => {
         let history = JSON.parse(localStorage.getItem('searchHistory') || '[]');
         
-        // もし直近の同じ日付の履歴があればそこに上書きするか、新規にunshiftするか
-        // ここでは安全に先頭に追加、または必要に応じてプロパティを持たせます
+        // 現在選択されている性別ラジオボタンの値（'male' または 'female'）を取得
+        const genderRadio = document.querySelector('input[name="gender"]:checked');
+        const currentGender = genderRadio ? genderRadio.value : 'male';
+        
+        // 履歴オブジェクトに gender を追加して保存する
         history.unshift({ 
             date, 
             comment, 
             result: result,           // 個人鑑定のAI結果
+            gender: currentGender,    // ★ここで性別を保存
             timestamp: Date.now() 
         });
         
@@ -131,6 +135,7 @@ const HistoryModule = {
 
         if (!h) return;
 
+
         // 日付解析＆フォーム反映
         const matches = h.date.match(/(\d+)\/(\d+)\/(\d+)/);
         if (matches) {
@@ -142,6 +147,22 @@ const HistoryModule = {
             if (commentInput) {
                 commentInput.value = h.comment || "";
             }
+
+            // --- 追加：履歴データから性別を復元してラジオボタンに反映する ---
+            const savedGender = h.gender; // ※もし保存時のキー名が違えば h.sex 等に変更してください
+            if (savedGender) {
+                const gVal = String(savedGender).trim();
+                const isFemale = gVal.includes('女') || gVal.toLowerCase().includes('female') || gVal.toLowerCase() === 'f';
+                const targetRadio = document.getElementById(isFemale ? 'female' : 'male');
+                
+                if (targetRadio) {
+                    targetRadio.checked = true;
+                    // アプリ側が変更を検知できるようにイベントを発火させる
+                    targetRadio.dispatchEvent(new Event('change', { bubbles: true }));
+                    targetRadio.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+            }
+            // ------------------------------------------------------------------
 
             if (typeof performCalculation === 'function') {
                 performCalculation();
@@ -630,28 +651,6 @@ if (shugoshinArea && shugoshinContent && shugoInfo) {
         await performCopy(fullResult, title);
     };
 
-// 1. ボタンを表示する
-const shareBtn = document.getElementById('share-or-copy-btn');
-if (shareBtn) {
-    shareBtn.style.display = 'inline-block';
-
-    shareBtn.onclick = async () => {
-    // 1. 必要なデータを全部この関数の中で揃える
-    const y = document.getElementById('year-input').value;
-    const m = document.getElementById('month-input').value;
-    const d = document.getElementById('day-input').value;
-    const commentVal = document.getElementById('comment-input').value || "";
-    
-    const result = document.getElementById('pos-a').innerText;
-    const daiun = document.getElementById('daiun-table-body').innerText;
-    
-    // 2. コピー用のテキスト（fullResult）とタイトル（title）をここで作る
-    const fullResult = `【${commentVal}】\n日時: ${y}/${m}/${d}\n結果: ${result}\n\n[大運表]\n${daiun}`;
-    const title = commentVal;
-    
-};
-}
-
 // ==========================================
 // 4. 初期化イベント (全てここに統合)
 // ==========================================
@@ -676,27 +675,19 @@ document.addEventListener('DOMContentLoaded', () => {
             const title = (comment && comment.trim() !== "") ? comment.trim() : "";
 
             if (y && m && d) {
+                // ★ 現在選択されている性別を取得する
+                const genderRadio = document.querySelector('input[name="gender"]:checked');
+                const currentGender = genderRadio ? genderRadio.value : 'male';
+
                 // ★ 現在保持しているAI鑑定結果（もしあれば）を一緒に保存する
                 const aiResultToSave = typeof currentLoadedHistoryResult !== 'undefined' ? currentLoadedHistoryResult : "";
                 
-                HistoryModule.save(`${y}/${m}/${d}`, title, aiResultToSave);
+                // 第4引数に性別（currentGender）を渡して保存する
+                HistoryModule.save(`${y}/${m}/${d}`, title, aiResultToSave, currentGender);
                 HistoryModule.render();
             }
         });
     }
-
-    // --- 2. 保存ボタン(saveBtn)の処理 ---
-    const saveBtn = document.getElementById('share-or-copy-btn');
-    if (saveBtn) {
-        saveBtn.style.display = 'block';
-        // ここで直接「保存」を呼ばず、既存の saveResultHandler を使う設計ならそのままに
-        saveBtn.addEventListener('click', (e) => {
-            if (typeof saveResultHandler === 'function') {
-                saveResultHandler(e);
-            }
-        });
-    }
-});
 
 // --- saveResultHandler 関数はここより下（DOMContentLoadedの外）に定義してください ---
 async function saveResultHandler() {
@@ -852,7 +843,9 @@ async function saveResultHandler() {
     } finally {
         document.body.removeChild(container);
     }
-    }
+} // ← ★ 1. saveResultHandler 関数を閉じる括弧
+
+}); // ← ★ 2. 最初（657行目）の document.addEventListener('DOMContentLoaded', () => { を閉じる括弧！
 
 // 1. 位相法グループの定義（位相法2の表を整理）
 const ishou2Groups = [
@@ -1162,6 +1155,21 @@ function reflectHistory(index) {
     if (commentInput) {
         commentInput.value = h.comment || "";
     }
+
+    // --- ★ここから追加：履歴データから性別を復元する処理 ---
+    const savedGender = h.gender || h.sex; // 保存されている性別を取得
+    if (savedGender) {
+        const gVal = String(savedGender).trim();
+        // 'female', '女', 'f' などの文字が含まれていれば女性、それ以外は男性と判定
+        const isFemale = gVal.includes('女') || gVal.toLowerCase().includes('female') || gVal.toLowerCase() === 'f';
+        const targetRadio = document.getElementById(isFemale ? 'female' : 'male');
+        
+        if (targetRadio) {
+            targetRadio.checked = true;
+            targetRadio.dispatchEvent(new Event('change', { bubbles: true })); // 必要に応じて変更イベントを発火
+        }
+    }
+    // ----------------------------------------------------
 
     if (typeof performCalculation === 'function') {
         performCalculation();
@@ -1700,12 +1708,38 @@ async function downloadCompatImage() {
     container.style.cssText = "position:absolute; left:-9999px; top:0; width:820px; background:#fcfbf9; padding:20px; display:block; box-sizing:border-box; font-family: sans-serif;";
     document.body.appendChild(container);
 
-    // 4. ヘッダーの組み立て
+    // --- メモ（コメント）の取得と優先順位の判定 ---
+    // 1人目・2人目のデータ内に保持されている可能性のあるメモ/コメントを取得
+    const selfComment = (window.tempCompatSelfData?.comment || window.tempCompatSelfData?.memo || "").trim();
+    const partnerComment = (window.tempCompatPartnerData?.comment || window.tempCompatPartnerData?.memo || "").trim();
+    const currentInputComment = (document.getElementById('comment-input')?.value || "").trim();
+
+    // 優先度：1人目のメモ ＞ 2人目のメモ ＞ 現在の入力欄のメモ
+    let bestComment = selfComment || partnerComment || currentInputComment;
+    
+    // 1人目の誕生日を取得（どちらのメモもない場合のフォールバック用）
+    const selfBirthDateStr = window.tempCompatSelfData?.birthDate || "";
+    const p1Parsed = parseBirthDate(selfBirthDateStr);
+    const fallbackBirthText = p1Parsed.year ? `${p1Parsed.year}年${p1Parsed.month}月${p1Parsed.day}日生` : "相性診断";
+
+    // ファイル名およびヘッダー表示用の文字列を決定
+    let displayHeaderTitle = "";
+    let fileBaseName = "";
+
+    if (bestComment) {
+        displayHeaderTitle = `相性診断書：${bestComment}`;
+        fileBaseName = `相性診断書・${bestComment}`;
+    } else {
+        displayHeaderTitle = `相性診断書 (${fallbackBirthText})`;
+        fileBaseName = `相性診断書・${fallbackBirthText}`;
+    }
+
+    // 4. ヘッダーの組み立て（メモがあれば先頭・大きく表示）
     const infoHeader = document.createElement('div');
     infoHeader.style.cssText = "margin-bottom:20px; border-bottom:2px solid #333; padding-bottom:10px; text-align:center;";
     infoHeader.innerHTML = `
-        <div style="font-weight:bold; font-size:22px;">算命学 相性診断書</div>
-        <div style="font-size:14px; color:#555; margin-top:5px;">作成日: ${new Date().toLocaleDateString()}</div>
+        <div style="font-weight:bold; font-size:20px; color:#1f2937; margin-bottom:5px;">${displayHeaderTitle}</div>
+        <div style="font-size:13px; color:#6b7280;">作成日: ${new Date().toLocaleDateString()}</div>
     `;
     container.appendChild(infoHeader);
 
@@ -1822,7 +1856,7 @@ async function downloadCompatImage() {
         container.appendChild(aiPartElement);
     }
 
-    // 7. html2canvas で画像化してダウンロード
+    // 7. html2canvas で画像化してファイル名を調整してダウンロード
     try {
         const canvas = await html2canvas(container, {
             scale: 2,
@@ -1832,17 +1866,21 @@ async function downloadCompatImage() {
 
         canvas.toBlob(blob => {
             if (!blob) return;
+            
+            // ファイル名に使えない特殊文字を安全な記号に置換
+            const safeFileName = fileBaseName.replace(/[\/\-\:\*\?\"\<\>\|]/g, '_');
+
             const url = URL.createObjectURL(blob);
             const a = document.createElement("a");
             a.href = url;
-            a.download = `算命学_相性診断書_${Date.now()}.jpg`;
+            a.download = `${safeFileName}.jpg`;
             
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
             
-            console.log("【相性画像出力】ダウンロードが完了しました！");
+            console.log("【相性画像出力】ダウンロード完了:", `${safeFileName}.jpg`);
         }, "image/jpeg", 0.9);
 
     } catch (e) {
