@@ -1727,28 +1727,38 @@ async function downloadCompatImage() {
     document.body.appendChild(container);
 
     // --- メモ（コメント）の取得と優先順位の判定 ---
-    // 1人目と2人目のメモをそれぞれ取得
-    const selfComment = (window.tempCompatSelfData?.comment || window.tempCompatSelfData?.memo || "").trim();
-    const partnerComment = (window.tempCompatPartnerData?.comment || window.tempCompatPartnerData?.memo || document.getElementById('comment-input')?.value || "").trim();
+    // 1人目と2人目のデータを安全に取得（'name' プロパティも候補に追加）
+    const selfData = window.tempCompatSelfData || {};
+    const partnerData = window.tempCompatPartnerData || {};
 
-    // それぞれのメモが存在しない場合のフォールバック（日付など）
-    const selfBirthDateStr = window.tempCompatSelfData?.birthDate || "";
-    const p1Parsed = parseBirthDate(selfBirthDateStr);
-    const selfFallback = p1Parsed.year ? `${p1Parsed.year}/${p1Parsed.month}/${p1Parsed.day}` : "1人目";
+    const selfComment = (selfData.comment || selfData.name || selfData.memo || "").trim();
+    const partnerComment = (partnerData.comment || partnerData.name || partnerData.memo || document.getElementById('comment-input')?.value || "").trim();
 
-    const partnerFallback = "2人目";
+    // 1人目の誕生日をフォールバック用として取得
+    const selfBirthDateStr = selfData.birthDate || selfData.date || "";
+    const p1Parsed = typeof parseBirthDate === 'function' ? parseBirthDate(selfBirthDateStr) : {};
+    
+    // 1人目の表示名：メモがあればそれ、なければ誕生日、どちらもなければ「1人目」
+    let label1 = selfComment;
+    if (!label1) {
+        if (p1Parsed && p1Parsed.year) {
+            label1 = `${p1Parsed.year}/${p1Parsed.month}/${p1Parsed.day}`;
+        } else if (selfBirthDateStr) {
+            label1 = selfBirthDateStr;
+        } else {
+            label1 = "1人目";
+        }
+    }
 
-    // 一人目の表示名（メモがなければ日付）
-    const label1 = selfComment !== "" ? selfComment : selfFallback;
-    // 二人目の表示名（メモがなければ「2人目」または入力値）
-    const label2 = partnerComment !== "" ? partnerComment : partnerFallback;
+    // 2人目の表示名：メモがあればそれ、なければ「2人目」
+    const label2 = partnerComment !== "" ? partnerComment : "2人目";
 
-    // ★ ご希望の形式「（一人目のメモ）+（二人目のメモ）」で結合する
+    // 結合してタイトルを作成
     const combinedMemo = `${label1} + ${label2}`;
 
-    // ファイル名およびヘッダー表示用の文字列を決定
     let displayHeaderTitle = `相性診断書・${combinedMemo}`;
     let fileBaseName = `相性診断書・${combinedMemo}`;
+    
 
     // 4. ヘッダーの組み立て（メモがあれば先頭・大きく表示）
     const infoHeader = document.createElement('div');
