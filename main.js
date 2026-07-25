@@ -1727,30 +1727,28 @@ async function downloadCompatImage() {
     document.body.appendChild(container);
 
     // --- メモ（コメント）の取得と優先順位の判定 ---
-    // 1人目・2人目のデータ内に保持されている可能性のあるメモ/コメントを取得
+    // 1人目と2人目のメモをそれぞれ取得
     const selfComment = (window.tempCompatSelfData?.comment || window.tempCompatSelfData?.memo || "").trim();
-    const partnerComment = (window.tempCompatPartnerData?.comment || window.tempCompatPartnerData?.memo || "").trim();
-    const currentInputComment = (document.getElementById('comment-input')?.value || "").trim();
+    const partnerComment = (window.tempCompatPartnerData?.comment || window.tempCompatPartnerData?.memo || document.getElementById('comment-input')?.value || "").trim();
 
-    // 優先度：1人目のメモ ＞ 2人目のメモ ＞ 現在の入力欄のメモ
-    let bestComment = selfComment || partnerComment || currentInputComment;
-    
-    // 1人目の誕生日を取得（どちらのメモもない場合のフォールバック用）
+    // それぞれのメモが存在しない場合のフォールバック（日付など）
     const selfBirthDateStr = window.tempCompatSelfData?.birthDate || "";
     const p1Parsed = parseBirthDate(selfBirthDateStr);
-    const fallbackBirthText = p1Parsed.year ? `${p1Parsed.year}年${p1Parsed.month}月${p1Parsed.day}日生` : "相性診断";
+    const selfFallback = p1Parsed.year ? `${p1Parsed.year}/${p1Parsed.month}/${p1Parsed.day}` : "1人目";
+
+    const partnerFallback = "2人目";
+
+    // 一人目の表示名（メモがなければ日付）
+    const label1 = selfComment !== "" ? selfComment : selfFallback;
+    // 二人目の表示名（メモがなければ「2人目」または入力値）
+    const label2 = partnerComment !== "" ? partnerComment : partnerFallback;
+
+    // ★ ご希望の形式「（一人目のメモ）+（二人目のメモ）」で結合する
+    const combinedMemo = `${label1} + ${label2}`;
 
     // ファイル名およびヘッダー表示用の文字列を決定
-    let displayHeaderTitle = "";
-    let fileBaseName = "";
-
-    if (bestComment) {
-        displayHeaderTitle = `相性診断書：${bestComment}`;
-        fileBaseName = `相性診断書・${bestComment}`;
-    } else {
-        displayHeaderTitle = `相性診断書 (${fallbackBirthText})`;
-        fileBaseName = `相性診断書・${fallbackBirthText}`;
-    }
+    let displayHeaderTitle = `相性診断書・${combinedMemo}`;
+    let fileBaseName = `相性診断書・${combinedMemo}`;
 
     // 4. ヘッダーの組み立て（メモがあれば先頭・大きく表示）
     const infoHeader = document.createElement('div');
