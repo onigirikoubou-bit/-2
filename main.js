@@ -1435,6 +1435,11 @@ function collectCurrentMeishikiData() {
 async function requestAiConsultation() {
     const menuType = document.getElementById('ai-menu-select').value;
     
+    // --- ★ここで事前に meishikiData を宣言しておく ---
+    let meishikiData = null; 
+    let partnerMeishikiData = null; 
+    let compatibilityTitle = ""; // ★ 相性診断用のタイトル保持用
+
     // --- 1人目（自分・相談者）の計算結果を取得 ---
     let selfMeishikiData = collectCurrentMeishikiData(); 
 
@@ -1444,8 +1449,6 @@ async function requestAiConsultation() {
     }
 
     let additionalInfo = {};
-    let partnerMeishikiData = null; 
-    let compatibilityTitle = ""; // ★ 相性診断用のタイトル保持用
 
     // --- 相性診断の場合の処理 ---
     if (menuType && menuType.includes('compatibility')) {
@@ -1473,13 +1476,11 @@ async function requestAiConsultation() {
             return;
         }
 
-        // --- ★ご要望のタイトルを作成：「相性診断書・（一人目のメモ）+（二人目のメモ）」 ---
-        // 一人目のメモ（もしあれば）
+        // --- タイトルを作成 ---
         const selfComment = (originalSelfData.comment && originalSelfData.comment.trim() !== "") 
             ? originalSelfData.comment.trim() 
             : `${originalSelfData.year || ''}/${originalSelfData.month || ''}/${originalSelfData.day || ''}`;
         
-        // 二人目のメモ（いま入力されているコメント欄の値）
         const partnerCommentInput = document.getElementById('comment-input')?.value || "";
         const partnerComment = (partnerCommentInput.trim() !== "") 
             ? partnerCommentInput.trim() 
@@ -1488,19 +1489,22 @@ async function requestAiConsultation() {
         compatibilityTitle = `相性診断書・${selfComment} + ${partnerComment}`;
 
         // 変数を正しい形で入れ替える
-        meishikiData = originalSelfData; // AIリクエスト用に1人目を正しくセット
+        meishikiData = originalSelfData; // ★ここで相性診断用の1人目をセット
 
-        // ==========================================
-        // ★ 画像出力用などにこの2人のデータを一時保存しておく
-        // ==========================================
+        // 一時保存
         window.tempCompatSelfData = meishikiData;
         window.tempCompatPartnerData = partnerMeishikiData;
 
-    } else if (menuType === 'free') {
-        additionalInfo.freeQuestion = document.getElementById('ai-free-question')?.value || '';
-        if (!additionalInfo.freeQuestion) {
-            alert('質問内容を入力してください。');
-            return;
+    } else {
+        // --- ★通常の単体鑑定や自由記述の場合 ---
+        meishikiData = selfMeishikiData; // ★通常の1人目データをセット
+        
+        if (menuType === 'free') {
+            additionalInfo.freeQuestion = document.getElementById('ai-free-question')?.value || '';
+            if (!additionalInfo.freeQuestion) {
+                alert('質問内容を入力してください。');
+                return;
+            }
         }
     }
 
@@ -1509,7 +1513,7 @@ async function requestAiConsultation() {
         menuType: menuType,
         selfData: meishikiData,          // 1人目のデータ
         partnerData: partnerMeishikiData,// 2人目のデータ
-        customTitle: compatibilityTitle  // ★必要であればタイトルも同梱できます
+        customTitle: compatibilityTitle  // タイトル
     };
 
     // ★ ここでコンソールに詳細を出力する
