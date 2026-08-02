@@ -28,31 +28,34 @@ app.post('/api/kantei', async (req, res) => {
     try {
         const { menuType, meishikiData, partnerMeishikiData, additionalInfo, message, history } = req.body;
         
-        // OpenAIなどのAPIに渡すメッセージ配列（会話の文脈を構築）
         let messages = [
             { role: "system", content: SYSTEM_INSTRUCTION }
         ];
 
-        // 1. もしフロントエンドから「これまでのチャット履歴 (history)」が送られてきていれば、それを組み込む
         if (history && Array.isArray(history) && history.length > 0) {
             messages = messages.concat(history);
         }
 
-        let prompt = "";
+        let prompt = ""; // 変数名を 'prompt' に統一
 
-        // 2. 追加質問（followup）の場合のプロンプト作成
+        // 2. 追加質問（followup）の場合
         if (menuType === 'followup') {
-            currentPrompt = `
+            prompt = `
 【命式データ（前提）】
 - 生年月日: ${meishikiData?.birthDate || '不明'} (${meishikiData?.gender || '不明'})
-- 日干支: ${meishikiData?.eto?.day || '不明'} / 月干支: ${meishikiData?.eto?.month || '不明'} / 年干支: ${meishikiData?.eto?.year || '不明'}
+- 日干支: ${meishikiData?.eto?.day?.replace(/\n/g, '') || '不明'} / 月干支: ${meishikiData?.eto?.month?.replace(/\n/g, '') || '不明'} / 年干支: ${meishikiData?.eto?.year?.replace(/\n/g, '') || '不明'}
 - 天中殺: ${JSON.stringify(meishikiData?.tenchusatsu || '不明')}
-- 守護神: ${JSON.stringify(meishikiData?.shugoshin || '不明')}
+
+【守護神・忌神・位相法などの詳細】
+${meishikiData?.shugoshinAndDetails || 'データなし'}
+
+【人体図データ】
+${JSON.stringify(meishikiData?.jintaizu || {})}
 
 【追加の質問・相談】
 ${message || '特になし'}
 
-※上記はこれまでの会話の文脈を踏まえた上での「追加の質問」です。算命学の命式および守護神データを絶対にブレさせず、これまでのやり取りの流れを汲み取って回答してください。
+※上記はこれまでの会話の文脈を踏まえた上での「追加の質問」です。上記の正確な命式・守護神データを絶対にブレさせず、これまでのやり取りの流れを汲み取って回答してください。
 `;
         } 
         // 3. 相性診断の場合
@@ -61,25 +64,25 @@ ${message || '特になし'}
                 return res.status(400).json({ error: 'お相手の命式データが見つかりません。先に二人目の算出を行ってください。' });
             }
 
-            currentPrompt = `
+            prompt = `
 以下の2人の算命学のデータを元に、お互いの相性（恋愛・対人関係・精神的な結びつき）を深く鑑定してください。
-合法・散法（位相法）、お互いの命式内守護神や命式内忌神（sResults.join('、') や iResults.join('、')）、日干の結びつきなどを総合的に分析してください。
-懸念するべき点があれば遠慮なく指摘してください。陰占と陽占で各々の項目で判定し、点数をつけてください。
 一人目を本人、二人目をその相手とし、解説の最初に各々の生年月日と性別を明記してください。
 
 【1人目（相談者）のデータ】
 - 生年月日: ${meishikiData?.birthDate || '不明'} (${meishikiData?.gender || '不明'})
-- 日干支: ${meishikiData?.eto?.day || '不明'} / 月干支: ${meishikiData?.eto?.month || '不明'} / 年干支: ${meishikiData?.eto?.year || '不明'}
+- 日干支: ${meishikiData?.eto?.day?.replace(/\n/g, '') || '不明'} / 月干支: ${meishikiData?.eto?.month?.replace(/\n/g, '') || '不明'} / 年干支: ${meishikiData?.eto?.year?.replace(/\n/g, '') || '不明'}
 - 天中殺: ${JSON.stringify(meishikiData?.tenchusatsu || '不明')}
-- 守護神: ${JSON.stringify(meishikiData?.shugoshin || '不明')}
+- 守護神・詳細データ:
+${meishikiData?.shugoshinAndDetails || 'データなし'}
 
 【2人目（お相手）のデータ】
 - 生年月日: ${partnerMeishikiData?.birthDate || '不明'} (${partnerMeishikiData?.gender || '不明'})
-- 日干支: ${partnerMeishikiData?.eto?.day || '不明'} / 月干支: ${partnerMeishikiData?.eto?.month || '不明'} / 年干支: ${partnerMeishikiData?.eto?.year || '不明'}
+- 日干支: ${partnerMeishikiData?.eto?.day?.replace(/\n/g, '') || '不明'} / 月干支: ${partnerMeishikiData?.eto?.month?.replace(/\n/g, '') || '不明'} / 年干支: ${partnerMeishikiData?.eto?.year?.replace(/\n/g, '') || '不明'}
 - 天中殺: ${JSON.stringify(partnerMeishikiData?.tenchusatsu || '不明')}
-- 守護神: ${JSON.stringify(partnerMeishikiData?.shugoshin || '不明')}
+- 守護神・詳細データ:
+${partnerMeishikiData?.shugoshinAndDetails || 'データなし'}
 
-※重要：上記はすでにアプリ内で正確に算出した公式な命式データです。この正確な天中殺や星のデータを前提として、お互いの相性を鑑定してください。
+※重要：上記はすでにアプリ内で正確に算出した公式な命式データおよび守護神データです。このデータを絶対の前提としてお互いの相性を鑑定してください。
 `;
         } 
         // 4. 通常の各種鑑定（宿命、今年、来年、自由質問など）の場合
@@ -95,21 +98,26 @@ ${message || '特になし'}
                 menuDescription = `以下の自由な質問に対して回答してください: ${additionalInfo?.freeQuestion || ''}`;
             }
 
-            currentPrompt = `
+            prompt = `
 以下の算命学のデータを基に鑑定を行ってください。
 
 【命式データ】
 - 生年月日: ${meishikiData?.birthDate || '不明'} (${meishikiData?.gender || '不明'})
-- 日干支: ${meishikiData?.eto?.day || '不明'} / 月干支: ${meishikiData?.eto?.month || '不明'} / 年干支: ${meishikiData?.eto?.year || '不明'}
+- 日干支: ${meishikiData?.eto?.day?.replace(/\n/g, '') || '不明'} / 月干支: ${meishikiData?.eto?.month?.replace(/\n/g, '') || '不明'} / 年干支: ${meishikiData?.eto?.year?.replace(/\n/g, '') || '不明'}
 - 天中殺: ${JSON.stringify(meishikiData?.tenchusatsu || '不明')}
-- 守護神: ${JSON.stringify(meishikiData?.shugoshin || '不明')}
+
+【守護神・忌神・位相法などの詳細】
+${meishikiData?.shugoshinAndDetails || 'データなし'}
+
+【人体図データ】
+${JSON.stringify(meishikiData?.jintaizu || {})}
 
 【依頼内容】
 ${menuDescription}
 `;
         }
 
-        // 最後に今回のユーザーからのプロンプトをメッセージ配列に追加
+        // 最後にプロンプトをメッセージ配列に格納
         messages.push({ role: "user", content: prompt });
 
         // --- AIモデルの呼び出し処理 ---
