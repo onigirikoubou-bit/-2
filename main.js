@@ -1941,7 +1941,7 @@ async function downloadCompatImage() {
 // チャット結果（追加のやり取り）を既存の鑑定結果欄の末尾に直接追加する関数
 function appendChatMessage(sender, text) {
     // ★ 最初にAI鑑定結果が表示されるエリアのIDを指定してください（例: 'ai-result-view' や 'result-area' など）
-    const resultArea = document.getElementById('history-action-area'); 
+    const resultArea = document.getElementById('ai-chat-messages'); 
     if (!resultArea) {
         console.error("エラー: 鑑定結果を表示するエリアが見つかりません！");
         return;
