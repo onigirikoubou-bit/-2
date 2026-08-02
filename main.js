@@ -1939,3 +1939,21 @@ async function downloadCompatImage() {
         document.body.removeChild(container);
     }
 }
+
+// チャット欄にメッセージを追加する共通関数（もし無ければこれを作成してください）
+function appendChatMessage(sender, text) {
+    const chatContainer = document.getElementById('chat-container'); // ※実際のチャット表示エリアのIDに合わせて変更してください
+    if (!chatContainer) return;
+
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `chat-message ${sender}`; // 'user' や 'ai' などのクラスを想定
+    
+    // 改行を反映させつつテキストを設定
+    messageDiv.innerHTML = `<strong>${sender === 'user' ? 'あなた' : 'AI'}</strong>: ${text.replace(/\n/g, '<br>')}`;
+    
+    chatContainer.appendChild(messageDiv);
+    
+    // 最新のメッセージまでスクロール
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+}
+
