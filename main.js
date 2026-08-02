@@ -1629,13 +1629,31 @@ async function sendFollowUpMessage() {
     const meishikiData = collectCurrentMeishikiData();
 
     try {
-        const response = await fetch('https://sanmeigaku-02ci.onrender.com/api/chat', { // または /api/kantei
+        // ★ ここで画面上のチャットコンテナからこれまでのやり取りを収集する
+        const chatElements = document.querySelectorAll('#chat-container .chat-message'); // ※チャット欄のHTML構造に合わせてセレクタを確認してください
+        let conversationHistory = [];
+        
+        chatElements.forEach(el => {
+            // クラス名などでユーザーかAIかを判定（例: 'user' クラスを持っているか）
+            const isUser = el.classList.contains('user'); 
+            
+            // ラベル（「あなた:」や「AI:」など）が重複しないよう綺麗にテキストを抽出
+            let text = el.innerText;
+            text = text.replace(/^(あなた|AI):\s*/, '');
+
+            conversationHistory.push({
+                role: isUser ? 'user' : 'assistant',
+                content: text
+            });
+        });
+
+        const response = await fetch('https://sanmeigaku-02ci.onrender.com/api/kantei', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 message: question,
                 meishikiData: meishikiData,
-                // 必要であればここにチャット履歴も入れる
+                history: conversationHistory // ★ これまでの会話履歴をセット！
             })
         });
 
