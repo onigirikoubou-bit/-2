@@ -976,14 +976,6 @@ function renderList(figures) {
     if (!area) return;
     
     area.innerHTML = '';
-    
-    // 生年順にソート
-    const sorted = [...figures].sort((a, b) => {
-        // もしデータに birth がない場合に備えての安全策
-        const b1 = new Date(a.birth || "0001-01-01");
-        const b2 = new Date(b.birth || "0001-01-01");
-        return b1 - b2;
-    });
 
     const ul = document.createElement('ul');
     sorted.forEach(p => {
@@ -1617,75 +1609,63 @@ function closeAIChat() {
 }
 
 // 4. 追い質問（追加チャット）の送信処理
+// 4. 追い質問（追加チャット）の送信処理
 async function sendFollowUpMessage() {
     const inputEl = document.getElementById('ai-followup-input');
     const question = inputEl.value.trim();
     if (!question) return;
 
-    // 画面に自分の質問を追加
+    // 画面に自分の質問をまず追加表示する
     appendChatMessage('user', question);
     inputEl.value = '';
 
+    // 現在の命式データを取得
     const meishikiData = collectCurrentMeishikiData();
 
-    try {
-        // ★ ここで画面上のチャットコンテナからこれまでのやり取りを収集する
-        const chatElements = document.querySelectorAll('#chat-container .chat-message'); // ※チャット欄のHTML構造に合わせてセレクタを確認してください
-        let conversationHistory = [];
-        
-        chatElements.forEach(el => {
-            // クラス名などでユーザーかAIかを判定（例: 'user' クラスを持っているか）
-            const isUser = el.classList.contains('user'); 
-            
-            // ラベル（「あなた:」や「AI:」など）が重複しないよう綺麗にテキストを抽出
-            let text = el.innerText;
-            text = text.replace(/^(あなた|AI):\s*/, '');
-
-            conversationHistory.push({
-                role: isUser ? 'user' : 'assistant',
-                content: text
-            });
+    // 画面上のチャット履歴（これまでのやり取り）を収集する
+    const chatElements = document.querySelectorAll('#ai-result-view .chat-message, #chat-container .chat-message'); 
+    let conversationHistory = [];
+    
+    chatElements.forEach(el => {
+        const isUser = el.classList.contains('user'); 
+        let text = el.innerText.replace(/^(【追加のご質問】|【AIからの回答】|あなた|AI):\s*/, '');
+        conversationHistory.push({
+            role: isUser ? 'user' : 'assistant',
+            content: text
         });
+    });
 
+    try {
         const response = await fetch('https://sanmeigaku-02ci.onrender.com/api/kantei', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                message: question,
+                menuType: 'followup', // ★ 追加質問であることを示すタイプを指定
+                message: question,    // 今回の質問
                 meishikiData: meishikiData,
-                history: conversationHistory // ★ これまでの会話履歴をセット！
+                history: conversationHistory // ★ これまでの会話履歴を同梱
             })
         });
 
         const data = await response.json();
-        if (data.reply || data.result) {
-            const aiText = data.reply || data.result;
-            
-            // 1. 画面のチャットエリアにAIの返答を表示
-            appendChatMessage('ai', aiText);
+        console.log("追加質問の結果受信:", data);
 
-            // ==========================================
-            // ★ 2. ここで「相性診断の結果」を最新の履歴に保存する！
-            // ==========================================
-            const rawData = localStorage.getItem('searchHistory');
-            let historyArray = rawData ? JSON.parse(rawData) : [];
+        const resultText = data.result || data.reply || data.message || "回答を取得しました。";
+        
+        // AIからの回答を画面（結果エリアの末尾）に追記する
+        appendChatMessage('ai', resultText);
 
-            if (historyArray.length > 0) {
-                // ダミーではなく、実際にAIから返ってきた 'aiText' を保存します
-                historyArray[0].compatResult = aiText;
-                localStorage.setItem('searchHistory', JSON.stringify(historyArray));
-                console.log("【保存成功】相性診断の実際のAI結果を履歴に紐づけました！文字数:", aiText.length);
-                
-                // 履歴リストの表示を更新
-                if (typeof HistoryModule !== 'undefined' && HistoryModule.render) {
-                    HistoryModule.render();
-                }
-            }
-            // ==========================================
+        // 必要に応じてローカルストレージの履歴を最新のAI回答に更新する
+        const rawData = localStorage.getItem('searchHistory');
+        let historyArray = rawData ? JSON.parse(rawData) : [];
+        if (historyArray.length > 0) {
+            historyArray[0].result = resultText;
+            localStorage.setItem('searchHistory', JSON.stringify(historyArray));
         }
+
     } catch (e) {
-        console.error(e);
-        appendChatMessage('ai', '通信エラーが発生しました。');
+        console.error("追加質問の通信エラー:", e);
+        appendChatMessage('ai', '通信エラーが発生しました。時間をおいて再度お試しください。');
     }
 }
 
@@ -1958,20 +1938,37 @@ async function downloadCompatImage() {
     }
 }
 
-// チャット欄にメッセージを追加する共通関数（もし無ければこれを作成してください）
+// チャット結果（追加のやり取り）を既存の鑑定結果欄の末尾に直接追加する関数
 function appendChatMessage(sender, text) {
-    const chatContainer = document.getElementById('chat-container'); // ※実際のチャット表示エリアのIDに合わせて変更してください
-    if (!chatContainer) return;
+    // ★ 最初にAI鑑定結果が表示されるエリアのIDを指定してください（例: 'ai-result-view' や 'result-area' など）
+    const resultArea = document.getElementById('ai-result-view'); 
+    if (!resultArea) {
+        console.error("エラー: 鑑定結果を表示するエリアが見つかりません！");
+        return;
+    }
 
+    // 追加するメッセージ用の wrapper を作成
     const messageDiv = document.createElement('div');
-    messageDiv.className = `chat-message ${sender}`; // 'user' や 'ai' などのクラスを想定
+    messageDiv.style.marginTop = "20px";
+    messageDiv.style.padding = "15px";
+    messageDiv.style.borderRadius = "8px";
     
-    // 改行を反映させつつテキストを設定
-    messageDiv.innerHTML = `<strong>${sender === 'user' ? 'あなた' : 'AI'}</strong>: ${text.replace(/\n/g, '<br>')}`;
-    
-    chatContainer.appendChild(messageDiv);
-    
-    // 最新のメッセージまでスクロール
-    chatContainer.scrollTop = chatContainer.scrollHeight;
+    if (sender === 'user') {
+        // 自分の質問のスタイル
+        messageDiv.style.background = "#f0f4f8";
+        messageDiv.style.borderLeft = "4px solid #3182ce";
+        messageDiv.innerHTML = `<strong>【追加のご質問】</strong><br>${text.replace(/\n/g, '<br>')}`;
+    } else {
+        // AIの返答のスタイル
+        messageDiv.style.background = "#fffaf0";
+        messageDiv.style.borderLeft = "4px solid #dd6b20";
+        messageDiv.innerHTML = `<strong>【AIからの回答】</strong><br>${text.replace(/\n/g, '<br>')}`;
+    }
+
+    // 既存の鑑定結果の「いちばん下（末尾）」に追加する
+    resultArea.appendChild(messageDiv);
+
+    // 追加した場所までスムーズにスクロール
+    messageDiv.scrollIntoView({ behavior: 'smooth', block: 'end' });
 }
 
