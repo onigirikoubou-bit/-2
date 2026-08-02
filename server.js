@@ -38,7 +38,7 @@ app.post('/api/kantei', async (req, res) => {
             messages = messages.concat(history);
         }
 
-        let currentPrompt = "";
+        let prompt = "";
 
         // 2. 追加質問（followup）の場合のプロンプト作成
         if (menuType === 'followup') {
@@ -110,7 +110,7 @@ ${menuDescription}
         }
 
         // 最後に今回のユーザーからのプロンプトをメッセージ配列に追加
-        messages.push({ role: "user", content: currentPrompt });
+        messages.push({ role: "user", content: prompt });
 
         // --- AIモデルの呼び出し処理 ---
         const response = await ai.models.generateContent({
