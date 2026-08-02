@@ -49,8 +49,16 @@ app.post('/api/kantei', async (req, res) => {
 【守護神・忌神・位相法などの詳細】
 ${meishikiData?.shugoshinAndDetails || 'データなし'}
 
-【人体図データ】
-${JSON.stringify(meishikiData?.jintaizu || {})}
+【人体図・エネルギーデータ（前提）】
+- 全体の身強・身弱（エネルギー判定 / posA）: ${meishikiData?.jintaizu?.posA || '不明'}
+- 頭（北 / 目上・精神 / posH）: ${meishikiData?.jintaizu?.posH || '不明'}
+- 右手（東 / 初年期・社会 / posB）: ${meishikiData?.jintaizu?.posB || '不明'}
+- 胸（中央 / 主星・本質 / posI）: ${meishikiData?.jintaizu?.posI || '不明'}
+- 左手（西 / 晩年期・家庭 / posF）: ${meishikiData?.jintaizu?.posF || '不明'}
+- 腹（南 / 目下・結果 / posD）: ${meishikiData?.jintaizu?.posD || '不明'}
+- 十二大従星（初年期 / posG）: ${meishikiData?.jintaizu?.posG || meishikiData?.jintaizu?.juunidai_shonen || '不明'}
+- 十二大従星（中年期 / posE）: ${meishikiData?.jintaizu?.posE || meishikiData?.jintaizu?.juunidai_chunen || '不明'}
+- 十二大従星（晩年期 / posC）: ${meishikiData?.jintaizu?.posC || meishikiData?.jintaizu?.juunidai_bannen || '不明'}
 
 【追加の質問・相談】
 ${message || '特になし'}
@@ -110,7 +118,16 @@ ${partnerMeishikiData?.shugoshinAndDetails || 'データなし'}
 ${meishikiData?.shugoshinAndDetails || 'データなし'}
 
 【人体図データ】
-${JSON.stringify(meishikiData?.jintaizu || {})}
+【人体図・エネルギーデータ（前提）】
+- 全体の身強・身弱（エネルギー判定 / posA）: ${meishikiData?.jintaizu?.posA || '不明'}
+- 頭（北 / 目上・精神 / posH）: ${meishikiData?.jintaizu?.posH || '不明'}
+- 右手（東 / 初年期・社会 / posB）: ${meishikiData?.jintaizu?.posB || '不明'}
+- 胸（中央 / 主星・本質 / posI）: ${meishikiData?.jintaizu?.posI || '不明'}
+- 左手（西 / 晩年期・家庭 / posF）: ${meishikiData?.jintaizu?.posF || '不明'}
+- 腹（南 / 目下・結果 / posD）: ${meishikiData?.jintaizu?.posD || '不明'}
+- 十二大従星（初年期 / posG）: ${meishikiData?.jintaizu?.posG || meishikiData?.jintaizu?.juunidai_shonen || '不明'}
+- 十二大従星（中年期 / posE）: ${meishikiData?.jintaizu?.posE || meishikiData?.jintaizu?.juunidai_chunen || '不明'}
+- 十二大従星（晩年期 / posC）: ${meishikiData?.jintaizu?.posC || meishikiData?.jintaizu?.juunidai_bannen || '不明'}
 
 【依頼内容】
 ${menuDescription}
