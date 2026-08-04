@@ -651,6 +651,28 @@ if (shugoshinArea && shugoshinContent && shugoInfo) {
         await performCopy(fullResult, title);
     };
 
+    // 1. ボタンを表示する
+const shareBtn = document.getElementById('share-or-copy-btn');
+if (shareBtn) {
+    shareBtn.style.display = 'inline-block';
+
+    shareBtn.onclick = async () => {
+    // 1. 必要なデータを全部この関数の中で揃える
+    const y = document.getElementById('year-input').value;
+    const m = document.getElementById('month-input').value;
+    const d = document.getElementById('day-input').value;
+    const commentVal = document.getElementById('comment-input').value || "";
+    
+    const result = document.getElementById('pos-a').innerText;
+    const daiun = document.getElementById('daiun-table-body').innerText;
+    
+    // 2. コピー用のテキスト（fullResult）とタイトル（title）をここで作る
+    const fullResult = `【${commentVal}】\n日時: ${y}/${m}/${d}\n結果: ${result}\n\n[大運表]\n${daiun}`;
+    const title = commentVal;
+    
+};
+}
+
 // ==========================================
 // 4. 初期化イベント (全てここに統合)
 // ==========================================
