@@ -637,55 +637,71 @@ if (shugoshinArea && shugoshinContent && shugoInfo) {
 }
 }
 
-// --- 共有・保存ボタン（share-or-copy-btn）の初期化と処理まとめ ---
+ // 1. まず最初に変数を宣言し、要素を取得する
 const shareBtn = document.getElementById('share-or-copy-btn');
 
 if (shareBtn) {
-    // 1. まずボタンを表示状態にする
-    shareBtn.style.display = 'inline-block'; // または 'block'
+    // 2. ボタンを表示状態にする
+    shareBtn.style.display = 'inline-block';
 
-    // 「結果を保存」ボタンが押されたときの処理
-shareBtn.onclick = async () => {
-    try {
-        // 1. 基本的なデータ（生年月日や大運など）を収集
-        const y = document.getElementById('year-input')?.value || "";
-        const m = document.getElementById('month-input')?.value || "";
-        const d = document.getElementById('day-input')?.value || "";
-        const commentVal = document.getElementById('comment-input')?.value || "";
-        
-        const result = document.getElementById('pos-a')?.innerText || "";
-        const daiun = document.getElementById('daiun-table-body')?.innerText || "";
-        
-        // 2. ★AI鑑定結果が表示されているエリア（例: AIの返答が表示されるコンテナのIDを適宜変更してください）
-        const aiResultElement = document.getElementById('ai-result-view'); // ※ご自身のAI結果表示エリアのIDに書き換えてください
-        const hasAiResult = aiResultElement && aiResultElement.style.display !== 'none' && aiResultElement.innerText.trim() !== '';
+    // 3. クリックされたときの処理を設定する
+    shareBtn.onclick = async () => {
+        try {
+            // AI鑑定結果が表示されているエリアを取得
+            const aiResultContainer = document.getElementById('ai-result-view'); // 実際のIDに合わせてください
+            
+            // AI結果が表示されているかどうかを判定
+            const hasAiResult = aiResultContainer && 
+                                window.getComputedStyle(aiResultContainer).display !== 'none' && 
+                                aiResultContainer.innerText.trim() !== '';
 
-        let fullResult = "";
-        
-        if (hasAiResult) {
-            // 【パターンA：AI鑑定結果が表示されている場合】
-            const aiText = aiResultElement.innerText;
-            fullResult = `【${commentVal}】\n日時: ${y}/${m}/${d}\n結果: ${result}\n\n[大運表]\n${daiun}\n\n[AI鑑定結果]\n${aiText}`;
-            console.log("AI鑑定結果を含めて出力します");
-        } else {
-            // 【パターンB：履歴などから呼び出され、AI鑑定結果が表示されていない場合】
-            fullResult = `【${commentVal}】\n日時: ${y}/${m}/${d}\n結果: ${result}\n\n[大運表]\n${daiun}`;
-            console.log("命式部分のみを出力します");
+            // ★重要：命式、大運表、AI結果など「画像に収めたいすべての要素」を囲んでいる親コンテナを指定してください
+            // 例: 結果画面全体を囲むラッパー要素のIDが 'result-area' や 'print-area' の場合
+            const mainContainer = document.getElementById('result-area'); 
+            
+            if (!mainContainer) {
+                alert("保存するデータが見つかりません。");
+                return;
+            }
+
+            // AI結果が表示されていない場合は、一時的にAI結果エリアを非表示にする
+            let originalDisplay = "";
+            if (aiResultContainer) {
+                originalDisplay = aiResultContainer.style.display;
+                if (!hasAiResult) {
+                    aiResultContainer.style.display = 'none'; // 命式・大運表のみにするため一時的に隠す
+                }
+            }
+
+            // html2canvas を使って画像に変換
+            const canvas = await html2canvas(mainContainer, {
+                scale: 2, // 画質を綺麗にするため
+                useCORS: true,
+                backgroundColor: "#ffffff" // JPGにするため背景を白に指定
+            });
+
+            // 隠したAI結果の表示を元に戻す
+            if (aiResultContainer && !hasAiResult) {
+                aiResultContainer.style.display = originalDisplay;
+            }
+
+            // ① 画像（JPG）としてダウンロードさせる処理
+            const imageURL = canvas.toDataURL('image/jpeg', 0.95); // 0.95は画質（95%）
+            const link = document.createElement('a');
+            
+            const commentVal = document.getElementById('comment-input')?.value || "算命学鑑定";
+            link.href = imageURL;
+            link.download = `${commentVal}_鑑定結果.jpg`; // 拡張子を .jpg に変更
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+        } catch (error) {
+            console.error("画像の保存に失敗しました:", error);
+            alert("画像の保存に失敗しました。");
         }
-
-        // 3. コピーまたは保存処理を実行
-        if (typeof performCopy === 'function') {
-            await performCopy(fullResult, commentVal || "算命学鑑定結果");
-        } else {
-            await navigator.clipboard.writeText(fullResult);
-            alert("鑑定結果をクリップボードにコピーしました！");
-        }
-
-    } catch (error) {
-        console.error("保存・共有処理でエラーが発生しました:", error);
-        alert("保存処理に失敗しました。");
-    }
-};
+    };
 }
 
 // ==========================================
@@ -1979,7 +1995,7 @@ async function downloadCompatImage() {
 
 // チャット結果（追加のやり取り）を既存の鑑定結果欄の末尾に直接追加する関数
 function appendChatMessage(sender, text) {
-    // ★ 最初にAI鑑定結果が表示されるエリアのIDを指定してください（例: 'ai-result-view' や 'result-area' など）
+    // ★ 最初にAI鑑定結果が表示されるエリアのIDを指定してください
     const resultArea = document.getElementById('ai-chat-messages'); 
     if (!resultArea) {
         console.error("エラー: 鑑定結果を表示するエリアが見つかりません！");
