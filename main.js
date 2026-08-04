@@ -637,61 +637,73 @@ if (shugoshinArea && shugoshinContent && shugoInfo) {
 }
 }
 
- // 1. まず最初に変数を宣言し、要素を取得する
 const shareBtn = document.getElementById('share-or-copy-btn');
 
 if (shareBtn) {
-    // 2. ボタンを表示状態にする
     shareBtn.style.display = 'inline-block';
 
-    // 3. クリックされたときの処理を設定する
     shareBtn.onclick = async () => {
         try {
-            // AI鑑定結果が表示されているエリアを取得
-            const aiResultContainer = document.getElementById('ai-result-view'); // 実際のIDに合わせてください
+            // 1. 必要な各パーツを個別に取得する
+            // ※お使いのHTMLのID名に合わせて書き換えてください
+            const meishikiArea = document.getElementById('result-area'); // 命式や基本情報があるエリア
+            const daiunArea = document.getElementById('daiun-table-body')?.closest('table') || document.getElementById('daiun-container'); // 大運表のエリア
+            const aiResultContainer = document.getElementById('ai-result-view'); // AI鑑定結果のエリア
             
-            // AI結果が表示されているかどうかを判定
-            const hasAiResult = aiResultContainer && 
-                                window.getComputedStyle(aiResultContainer).display !== 'none' && 
-                                aiResultContainer.innerText.trim() !== '';
-
-            // ★重要：命式、大運表、AI結果など「画像に収めたいすべての要素」を囲んでいる親コンテナを指定してください
-            // 例: 結果画面全体を囲むラッパー要素のIDが 'result-area' や 'print-area' の場合
-            const mainContainer = document.getElementById('result-area'); 
-            
-            if (!mainContainer) {
+            if (!meishikiArea) {
                 alert("保存するデータが見つかりません。");
                 return;
             }
 
-            // AI結果が表示されていない場合は、一時的にAI結果エリアを非表示にする
-            let originalDisplay = "";
-            if (aiResultContainer) {
-                originalDisplay = aiResultContainer.style.display;
-                if (!hasAiResult) {
-                    aiResultContainer.style.display = 'none'; // 命式・大運表のみにするため一時的に隠す
-                }
+            // AI結果が表示されているかどうか
+            const hasAiResult = aiResultContainer && 
+                                window.getComputedStyle(aiResultContainer).display !== 'none' && 
+                                aiResultContainer.innerText.trim() !== '';
+
+            // 2. キャプチャ専用の「一時的な親ボックス（ラッパー）」をメモリ上に作成する
+            const wrapper = document.createElement('div');
+            wrapper.style.position = 'absolute';
+            wrapper.style.left = '-9999px'; // 画面外に置いてユーザーには見せない
+            wrapper.style.top = '0';
+            wrapper.style.width = '800px'; // 画像の基準幅（適宜調整可能）
+            wrapper.style.backgroundColor = '#ffffff';
+            wrapper.style.padding = '20px';
+            wrapper.style.boxSizing = 'border-box';
+            wrapper.style.fontFamily = window.getComputedStyle(meishikiArea).fontFamily;
+
+            // 3. 必要なパーツをコピーまたはクローンしてラッパーに追加する
+            wrapper.appendChild(meishikiArea.cloneNode(true));
+            
+            if (daiunArea) {
+                wrapper.appendChild(daiunArea.cloneNode(true));
             }
 
-            // html2canvas を使って画像に変換
-            const canvas = await html2canvas(mainContainer, {
-                scale: 2, // 画質を綺麗にするため
+            if (hasAiResult && aiResultContainer) {
+                wrapper.appendChild(aiResultContainer.cloneNode(true));
+            }
+
+            // 一時ラッパーをドキュメントのボディに一時的に追加
+            document.body.appendChild(wrapper);
+
+            // 4. まとめたラッパーを対象にして html2canvas を実行
+            const canvas = await html2canvas(wrapper, {
+                scale: 2,
                 useCORS: true,
-                backgroundColor: "#ffffff" // JPGにするため背景を白に指定
+                backgroundColor: "#ffffff",
+                windowWidth: wrapper.scrollWidth,
+                windowHeight: wrapper.scrollHeight
             });
 
-            // 隠したAI結果の表示を元に戻す
-            if (aiResultContainer && !hasAiResult) {
-                aiResultContainer.style.display = originalDisplay;
-            }
+            // 5. 使い終わった一時ラッパーを削除
+            document.body.removeChild(wrapper);
 
-            // ① 画像（JPG）としてダウンロードさせる処理
-            const imageURL = canvas.toDataURL('image/jpeg', 0.95); // 0.95は画質（95%）
+            // 6. 画像（JPG）としてダウンロードさせる処理
+            const imageURL = canvas.toDataURL('image/jpeg', 0.95);
             const link = document.createElement('a');
             
             const commentVal = document.getElementById('comment-input')?.value || "算命学鑑定";
             link.href = imageURL;
-            link.download = `${commentVal}_鑑定結果.jpg`; // 拡張子を .jpg に変更
+            link.download = `${commentVal}_鑑定結果.jpg`;
             
             document.body.appendChild(link);
             link.click();
