@@ -878,7 +878,6 @@ async function saveResultHandler() {
     }
 } // ← ★ 1. saveResultHandler 関数を閉じる括弧
 
-}); // ← ★ 2. 最初（657行目）の document.addEventListener('DOMContentLoaded', () => { を閉じる括弧！
 
 // 1. 位相法グループの定義（位相法2の表を整理）
 const ishou2Groups = [
