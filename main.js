@@ -645,56 +645,63 @@ if (shareBtn) {
     shareBtn.onclick = async () => {
         try {
             // 1. 各パーツを取得
-const meishikiArea = document.getElementById('result-area'); 
-const daiunArea = document.getElementById('daiun-table-body')?.closest('table') || document.getElementById('daiun-container'); 
+            const meishikiArea = document.getElementById('result-area'); 
+            const daiunArea = document.getElementById('daiun-table-body')?.closest('table') || document.getElementById('daiun-container'); 
+            
+            const aiResultContainer = document.getElementById('ai-chat-messages') || 
+                                      document.getElementById('ai-result') || 
+                                      document.getElementById('result-container') ||
+                                      document.querySelector('.ai-result-text'); 
+            
+            if (!meishikiArea) {
+                alert("保存するデータが見つかりません。");
+                return;
+            }
 
-// AI結果の要素を取得
-const aiResultContainer = document.getElementById('ai-chat-messages') || 
-                          document.getElementById('ai-result') || 
-                          document.getElementById('result-container') ||
-                          document.querySelector('.ai-result-text'); 
+            // ★厳密な判定：
+            // ① 要素が存在する
+            // ② CSSで非表示（display: none, visibility: hidden, opacity: 0）になっていない
+            // ③ 中身のテキストが空ではない、かつ「AI鑑定結果が非表示状態の文言」などになっていない
+            let hasAiResult = false;
+            if (aiResultContainer) {
+                const style = window.getComputedStyle(aiResultContainer);
+                const isVisible = style.display !== 'none' && 
+                                  style.visibility !== 'hidden' && 
+                                  style.opacity !== '0' &&
+                                  aiResultContainer.offsetHeight > 0; // 高さが0（＝折りたたまれている等）ではないか
 
-if (!meishikiArea) {
-    alert("保存するデータが見つかりません。");
-    return;
-}
+                const text = aiResultContainer.innerText.trim();
+                
+                // 「見えていて、かつ文字がしっかり入っている」場合のみ真にする
+                hasAiResult = isVisible && text !== '';
+            }
 
-// ★修正ポイント：画面上に「本当に表示されていて、かつ中身があるか」を厳密にチェックする
-let hasAiResult = false;
-if (aiResultContainer) {
-    const computedStyle = window.getComputedStyle(aiResultContainer);
-    const isVisible = computedStyle.display !== 'none' && computedStyle.visibility !== 'hidden' && computedStyle.opacity !== '0';
-    const hasText = aiResultContainer.innerText.trim() !== '';
-    
-    // 画面に見えていて文字が入っている場合のみ true にする
-    hasAiResult = isVisible && hasText;
-}
-            // 2. キャプチャ専用の「一時的な親ボックス（ラッパー）」をメモリ上に作成する
+            // 2. キャプチャ専用の一時的な親ボックスを作成
             const wrapper = document.createElement('div');
             wrapper.style.position = 'absolute';
-            wrapper.style.left = '-9999px'; // 画面外に置いてユーザーには見せない
+            wrapper.style.left = '-9999px';
             wrapper.style.top = '0';
-            wrapper.style.width = '800px'; // 画像の基準幅（適宜調整可能）
+            wrapper.style.width = '800px';
             wrapper.style.backgroundColor = '#ffffff';
             wrapper.style.padding = '20px';
             wrapper.style.boxSizing = 'border-box';
             wrapper.style.fontFamily = window.getComputedStyle(meishikiArea).fontFamily;
 
-            // 3. 必要なパーツをコピーまたはクローンしてラッパーに追加する
+            // 3. パーツを順次追加
             wrapper.appendChild(meishikiArea.cloneNode(true));
             
             if (daiunArea) {
                 wrapper.appendChild(daiunArea.cloneNode(true));
             }
 
-            if (hasAiResult && aiResultContainer) {
+            // ★本当に表示されている時だけ追加する
+            if (hasAiResult) {
                 wrapper.appendChild(aiResultContainer.cloneNode(true));
             }
 
-            // 一時ラッパーをドキュメントのボディに一時的に追加
             document.body.appendChild(wrapper);
 
-            // 4. まとめたラッパーを対象にして html2canvas を実行
+            // 4. html2canvas で画像化
             const canvas = await html2canvas(wrapper, {
                 scale: 2,
                 useCORS: true,
@@ -703,10 +710,9 @@ if (aiResultContainer) {
                 windowHeight: wrapper.scrollHeight
             });
 
-            // 5. 使い終わった一時ラッパーを削除
             document.body.removeChild(wrapper);
 
-            // 6. 画像（JPG）としてダウンロードさせる処理
+            // 5. JPGとしてダウンロード
             const imageURL = canvas.toDataURL('image/jpeg', 0.95);
             const link = document.createElement('a');
             
