@@ -648,7 +648,7 @@ if (shareBtn) {
             // ※お使いのHTMLのID名に合わせて書き換えてください
             const meishikiArea = document.getElementById('result-area'); // 命式や基本情報があるエリア
             const daiunArea = document.getElementById('daiun-table-body')?.closest('table') || document.getElementById('daiun-container'); // 大運表のエリア
-            const aiResultContainer = document.getElementById('ai-result-view'); // AI鑑定結果のエリア
+            const aiResultContainer = document.getElementById('ai-chat-messages'); // AI鑑定結果のエリア
             
             if (!meishikiArea) {
                 alert("保存するデータが見つかりません。");
