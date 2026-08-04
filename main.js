@@ -637,40 +637,49 @@ if (shugoshinArea && shugoshinContent && shugoInfo) {
 }
 }
 
-// --- 【新機能の統合】 ---
-    // const を消して、既存の値を再利用します
-    let comment = document.getElementById('comment-input').value;
-    const result = document.getElementById('pos-a').innerText;
-    const daiun = document.getElementById('daiun-table-body').innerText;
-
-    // 共有ボタンのイベント設定
-    document.getElementById('share-or-copy-btn').onclick = async () => {
-    const result = document.getElementById('pos-a').innerText;
-    // ここでさっきの sharedData を使う！
-    const text = `【${sharedData.comment}】\n日時: ${sharedData.y}/${sharedData.m}/${sharedData.d}\n結果: ${result}`;
-        await performCopy(fullResult, title);
-    };
-
-    // 1. ボタンを表示する
+// --- 共有・保存ボタン（share-or-copy-btn）の初期化と処理まとめ ---
 const shareBtn = document.getElementById('share-or-copy-btn');
-if (shareBtn) {
-    shareBtn.style.display = 'inline-block';
 
+if (shareBtn) {
+    // 1. まずボタンを表示状態にする
+    shareBtn.style.display = 'inline-block'; // または 'block'
+
+    // 2. 既存の古いイベント競合を防ぐため、一度 onclick をクリアして新しく設定する
     shareBtn.onclick = async () => {
-    // 1. 必要なデータを全部この関数の中で揃える
-    const y = document.getElementById('year-input').value;
-    const m = document.getElementById('month-input').value;
-    const d = document.getElementById('day-input').value;
-    const commentVal = document.getElementById('comment-input').value || "";
-    
-    const result = document.getElementById('pos-a').innerText;
-    const daiun = document.getElementById('daiun-table-body').innerText;
-    
-    // 2. コピー用のテキスト（fullResult）とタイトル（title）をここで作る
-    const fullResult = `【${commentVal}】\n日時: ${y}/${m}/${d}\n結果: ${result}\n\n[大運表]\n${daiun}`;
-    const title = commentVal;
-    
-};
+        try {
+            // 必要なデータをここでしっかりと収集
+            const y = document.getElementById('year-input')?.value || "";
+            const m = document.getElementById('month-input')?.value || "";
+            const d = document.getElementById('day-input')?.value || "";
+            const commentVal = document.getElementById('comment-input')?.value || "";
+            
+            const result = document.getElementById('pos-a')?.innerText || "";
+            const daiun = document.getElementById('daiun-table-body')?.innerText || "";
+            
+            // コピー・保存用のテキストを生成
+            const fullResult = `【${commentVal}】\n日時: ${y}/${m}/${d}\n結果: ${result}\n\n[大運表]\n${daiun}`;
+            const title = commentVal || "算命学鑑定結果";
+
+            //もし「テキストとしてコピー」させたい場合
+            if (typeof performCopy === 'function') {
+                await performCopy(fullResult, title);
+                console.log("結果をクリップボードにコピーしました！");
+            } 
+            // もし既存の保存ハンドラーがある場合
+            else if (typeof saveResultHandler === 'function') {
+                saveResultHandler();
+            } 
+            else {
+                // どちらの関数もない場合のフォールバック（クリップボードコピー）
+                await navigator.clipboard.writeText(fullResult);
+                alert("鑑定結果をクリップボードにコピーしました！");
+            }
+
+        } catch (error) {
+            console.error("保存・共有処理でエラーが発生しました:", error);
+            alert("保存処理に失敗しました。");
+        }
+    };
 }
 
 // ==========================================
@@ -711,17 +720,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-        // --- 2. 保存ボタン(saveBtn)の処理 ---
-    const saveBtn = document.getElementById('share-or-copy-btn');
-    if (saveBtn) {
-        saveBtn.style.display = 'block';
-        // ここで直接「保存」を呼ばず、既存の saveResultHandler を使う設計ならそのままに
-        saveBtn.addEventListener('click', (e) => {
-            if (typeof saveResultHandler === 'function') {
-                saveResultHandler(e);
-            }
-        });
-    }
 });
 
 // --- saveResultHandler 関数はここより下（DOMContentLoadedの外）に定義してください ---
