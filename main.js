@@ -1328,6 +1328,7 @@ function openHelp() {
                 <p>・最下部のリスト一覧から、該当項目の命式が確認できます</p>
                 <p>・歴史上の人物については、史書等で生年月日が確認できる人に限定しています</p>
                 <p>・結果を保存ボタンから、内容の画像がダウンロードできます</p>
+                <p>・相性診断は表示中の命式を二人目（お相手）、その前に表示していた命式を一人目（ご相談者）とします</p>
             </div>
             <button onclick="document.getElementById('help-modal').remove()" style="margin-top: 20px;">閉じる</button>
         </div>
