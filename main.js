@@ -644,42 +644,48 @@ if (shareBtn) {
     // 1. まずボタンを表示状態にする
     shareBtn.style.display = 'inline-block'; // または 'block'
 
-    // 2. 既存の古いイベント競合を防ぐため、一度 onclick をクリアして新しく設定する
-    shareBtn.onclick = async () => {
-        try {
-            // 必要なデータをここでしっかりと収集
-            const y = document.getElementById('year-input')?.value || "";
-            const m = document.getElementById('month-input')?.value || "";
-            const d = document.getElementById('day-input')?.value || "";
-            const commentVal = document.getElementById('comment-input')?.value || "";
-            
-            const result = document.getElementById('pos-a')?.innerText || "";
-            const daiun = document.getElementById('daiun-table-body')?.innerText || "";
-            
-            // コピー・保存用のテキストを生成
-            const fullResult = `【${commentVal}】\n日時: ${y}/${m}/${d}\n結果: ${result}\n\n[大運表]\n${daiun}`;
-            const title = commentVal || "算命学鑑定結果";
+    // 「結果を保存」ボタンが押されたときの処理
+shareBtn.onclick = async () => {
+    try {
+        // 1. 基本的なデータ（生年月日や大運など）を収集
+        const y = document.getElementById('year-input')?.value || "";
+        const m = document.getElementById('month-input')?.value || "";
+        const d = document.getElementById('day-input')?.value || "";
+        const commentVal = document.getElementById('comment-input')?.value || "";
+        
+        const result = document.getElementById('pos-a')?.innerText || "";
+        const daiun = document.getElementById('daiun-table-body')?.innerText || "";
+        
+        // 2. ★AI鑑定結果が表示されているエリア（例: AIの返答が表示されるコンテナのIDを適宜変更してください）
+        const aiResultElement = document.getElementById('ai-result-view'); // ※ご自身のAI結果表示エリアのIDに書き換えてください
+        const hasAiResult = aiResultElement && aiResultElement.style.display !== 'none' && aiResultElement.innerText.trim() !== '';
 
-            //もし「テキストとしてコピー」させたい場合
-            if (typeof performCopy === 'function') {
-                await performCopy(fullResult, title);
-                console.log("結果をクリップボードにコピーしました！");
-            } 
-            // もし既存の保存ハンドラーがある場合
-            else if (typeof saveResultHandler === 'function') {
-                saveResultHandler();
-            } 
-            else {
-                // どちらの関数もない場合のフォールバック（クリップボードコピー）
-                await navigator.clipboard.writeText(fullResult);
-                alert("鑑定結果をクリップボードにコピーしました！");
-            }
-
-        } catch (error) {
-            console.error("保存・共有処理でエラーが発生しました:", error);
-            alert("保存処理に失敗しました。");
+        let fullResult = "";
+        
+        if (hasAiResult) {
+            // 【パターンA：AI鑑定結果が表示されている場合】
+            const aiText = aiResultElement.innerText;
+            fullResult = `【${commentVal}】\n日時: ${y}/${m}/${d}\n結果: ${result}\n\n[大運表]\n${daiun}\n\n[AI鑑定結果]\n${aiText}`;
+            console.log("AI鑑定結果を含めて出力します");
+        } else {
+            // 【パターンB：履歴などから呼び出され、AI鑑定結果が表示されていない場合】
+            fullResult = `【${commentVal}】\n日時: ${y}/${m}/${d}\n結果: ${result}\n\n[大運表]\n${daiun}`;
+            console.log("命式部分のみを出力します");
         }
-    };
+
+        // 3. コピーまたは保存処理を実行
+        if (typeof performCopy === 'function') {
+            await performCopy(fullResult, commentVal || "算命学鑑定結果");
+        } else {
+            await navigator.clipboard.writeText(fullResult);
+            alert("鑑定結果をクリップボードにコピーしました！");
+        }
+
+    } catch (error) {
+        console.error("保存・共有処理でエラーが発生しました:", error);
+        alert("保存処理に失敗しました。");
+    }
+};
 }
 
 // ==========================================
