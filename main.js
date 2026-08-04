@@ -711,6 +711,19 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+        // --- 2. 保存ボタン(saveBtn)の処理 ---
+    const saveBtn = document.getElementById('share-or-copy-btn');
+    if (saveBtn) {
+        saveBtn.style.display = 'block';
+        // ここで直接「保存」を呼ばず、既存の saveResultHandler を使う設計ならそのままに
+        saveBtn.addEventListener('click', (e) => {
+            if (typeof saveResultHandler === 'function') {
+                saveResultHandler(e);
+            }
+        });
+    }
+});
+
 // --- saveResultHandler 関数はここより下（DOMContentLoadedの外）に定義してください ---
 async function saveResultHandler() {
     const originalArea = document.getElementById('result-area');
