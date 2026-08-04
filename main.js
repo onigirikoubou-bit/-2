@@ -644,22 +644,31 @@ if (shareBtn) {
 
     shareBtn.onclick = async () => {
         try {
-            // 1. 必要な各パーツを個別に取得する
-            // ※お使いのHTMLのID名に合わせて書き換えてください
-            const meishikiArea = document.getElementById('result-area'); // 命式や基本情報があるエリア
-            const daiunArea = document.getElementById('daiun-table-body')?.closest('table') || document.getElementById('daiun-container'); // 大運表のエリア
-            const aiResultContainer = document.getElementById('ai-chat-messages'); // AI鑑定結果のエリア
-            
-            if (!meishikiArea) {
-                alert("保存するデータが見つかりません。");
-                return;
-            }
+            // 1. 各パーツを取得
+const meishikiArea = document.getElementById('result-area'); 
+const daiunArea = document.getElementById('daiun-table-body')?.closest('table') || document.getElementById('daiun-container'); 
 
-            // AI結果が表示されているかどうか
-            const hasAiResult = aiResultContainer && 
-                                window.getComputedStyle(aiResultContainer).display !== 'none' && 
-                                aiResultContainer.innerText.trim() !== '';
+// AI結果の要素を取得
+const aiResultContainer = document.getElementById('ai-chat-messages') || 
+                          document.getElementById('ai-result') || 
+                          document.getElementById('result-container') ||
+                          document.querySelector('.ai-result-text'); 
 
+if (!meishikiArea) {
+    alert("保存するデータが見つかりません。");
+    return;
+}
+
+// ★修正ポイント：画面上に「本当に表示されていて、かつ中身があるか」を厳密にチェックする
+let hasAiResult = false;
+if (aiResultContainer) {
+    const computedStyle = window.getComputedStyle(aiResultContainer);
+    const isVisible = computedStyle.display !== 'none' && computedStyle.visibility !== 'hidden' && computedStyle.opacity !== '0';
+    const hasText = aiResultContainer.innerText.trim() !== '';
+    
+    // 画面に見えていて文字が入っている場合のみ true にする
+    hasAiResult = isVisible && hasText;
+}
             // 2. キャプチャ専用の「一時的な親ボックス（ラッパー）」をメモリ上に作成する
             const wrapper = document.createElement('div');
             wrapper.style.position = 'absolute';
@@ -1675,7 +1684,6 @@ function closeAIChat() {
     topPane.style.overflowY = 'visible';
 }
 
-// 4. 追い質問（追加チャット）の送信処理
 // 4. 追い質問（追加チャット）の送信処理
 async function sendFollowUpMessage() {
     const inputEl = document.getElementById('ai-followup-input');
