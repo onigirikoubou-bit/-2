@@ -1199,6 +1199,9 @@ function closeBottomPane() {
 function reflectHistory(index) {
     console.log("=== 【デバッグ】履歴クリック（取込）開始 index:", index, " ===");
 
+    // 履歴をクリックしたときの関数（reflectHistoryなど）の最初の方で：
+currentLoadedHistoryResult = h.result || ""; // この履歴に結果があれば入れ、なければ空にする！
+
     // 1. ローカルストレージから履歴一覧を取得
     const data = localStorage.getItem('searchHistory');
     const history = data ? JSON.parse(data) : [];
@@ -1270,41 +1273,17 @@ function reflectHistory(index) {
     }
 }
 
-// 2. 「AI鑑定結果」ボタンが押されたときの処理（完全強制サルベージ版）
+// 2. 「AI鑑定結果」ボタンが押されたときの処理
 function showAiResultFromHistory() {
     console.log("--- AI結果ボタンが押されました (ステップ1) ---");
 
-    const aiViewBtn = document.getElementById('showAiResultFromHistory-btn'); // または実際のボタンID
-
-if (aiViewBtn) {
-    aiViewBtn.onclick = () => {
-        // 現在画面に読み込まれている、あるいは直前にクリックされた履歴のデータから
-        // 「この人に紐づくAI結果（例: currentSelectedHistoryResult）」を取り出す
-        const targetResult = currentSelectedHistoryResult || ""; 
-
-        const aiResultContainer = document.getElementById('ai-chat-messages');
-        if (aiResultContainer) {
-            aiResultContainer.innerText = targetResult; // その人の結果だけを正確に描画
-            aiResultContainer.style.display = 'block'; // 必要なら表示
-        }
-            };
-}
-
     try {
-        // 1. 変数とストレージのチェック
-        let targetResult = typeof currentLoadedHistoryResult !== 'undefined' ? currentLoadedHistoryResult : "";
         
-        if (!targetResult) {
-            console.log("メモリにないためlocalStorageから検索します (ステップ2)");
-            const data = localStorage.getItem('searchHistory');
-            if (data) {
-                const history = JSON.parse(data);
-                const found = history.find(item => item && item.result && item.result.trim() !== "");
-                if (found) {
-                    targetResult = found.result;
-                    console.log("localStorageからの救出成功！");
-                }
-            }
+        let targetResult = "";
+        
+        // もし現在選択中の履歴オブジェクトや変数があればそこから取得する
+        if (typeof currentLoadedHistoryResult !== 'undefined' && currentLoadedHistoryResult) {
+            targetResult = currentLoadedHistoryResult;
         }
 
         console.log("表示するテキストの文字数:", targetResult ? targetResult.length : 0);
