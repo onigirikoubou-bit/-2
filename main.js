@@ -649,7 +649,7 @@ if (shareBtn) {
             const daiunArea = document.getElementById('daiun-table-body')?.closest('table') || document.getElementById('daiun-container'); 
             
             // 1. まず、AI結果エリアを「真っ白（空っぽ）」に初期化する！
-const aiResultContainer = document.getElementById('ai-chat-messages');
+aiResultContainer = document.getElementById('ai-chat-messages');
 if (aiResultContainer) {
     aiResultContainer.innerText = ''; // ←ここで確実に前回の残骸を消す
 }
