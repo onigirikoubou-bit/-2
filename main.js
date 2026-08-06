@@ -1199,13 +1199,13 @@ function closeBottomPane() {
 function reflectHistory(index) {
     console.log("=== 【デバッグ】履歴クリック（取込）開始 index:", index, " ===");
 
-    // 履歴をクリックしたときの関数（reflectHistoryなど）の最初の方で：
-currentLoadedHistoryResult = h.result || ""; // この履歴に結果があれば入れ、なければ空にする！
-
     // 1. ローカルストレージから履歴一覧を取得
     const data = localStorage.getItem('searchHistory');
     const history = data ? JSON.parse(data) : [];
     const h = history[index];
+
+    // 1. この履歴専用のAI結果を変数にセットする（なければ空にする）
+currentLoadedHistoryResult = h.result || "";
 
     if (!h) {
         console.log("❌ エラー: 指定されたインデックスの履歴データが存在しません。");
