@@ -1410,7 +1410,8 @@ function openHelp() {
                 <p>・歴史上の人物については、史書等で生年月日が確認できる人に限定しています</p>
                 <p>・結果を保存ボタンから、内容の画像がダウンロードできます</p>
                 <p>・相性診断は表示中の命式を二人目（お相手）、その前に表示していた命式を一人目（ご相談者）とします</p>
-            </div>
+                <p>・「相性診断結果を画像で保存」ボタンから、ふたりの命式を並べた画像が取得できます</p>
+                </div>
             <button onclick="document.getElementById('help-modal').remove()" style="margin-top: 20px;">閉じる</button>
         </div>
     `;
