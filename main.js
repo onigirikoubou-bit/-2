@@ -648,7 +648,6 @@ if (shareBtn) {
             const meishikiArea = document.getElementById('result-area'); 
             const daiunArea = document.getElementById('daiun-table-body')?.closest('table') || document.getElementById('daiun-container'); 
             
-            const aiResultContainer = document.getElementById('ai-chat-messages'); 
             // 1. まず、AI結果エリアを「真っ白（空っぽ）」に初期化する！
 const aiResultContainer = document.getElementById('ai-chat-messages');
 if (aiResultContainer) {
@@ -1274,6 +1273,22 @@ function reflectHistory(index) {
 // 2. 「AI鑑定結果」ボタンが押されたときの処理（完全強制サルベージ版）
 function showAiResultFromHistory() {
     console.log("--- AI結果ボタンが押されました (ステップ1) ---");
+
+    const aiViewBtn = document.getElementById('showAiResultFromHistory-btn'); // または実際のボタンID
+
+if (aiViewBtn) {
+    aiViewBtn.onclick = () => {
+        // 現在画面に読み込まれている、あるいは直前にクリックされた履歴のデータから
+        // 「この人に紐づくAI結果（例: currentSelectedHistoryResult）」を取り出す
+        const targetResult = currentSelectedHistoryResult || ""; 
+
+        const aiResultContainer = document.getElementById('ai-chat-messages');
+        if (aiResultContainer) {
+            aiResultContainer.innerText = targetResult; // その人の結果だけを正確に描画
+            aiResultContainer.style.display = 'block'; // 必要なら表示
+        }
+            };
+}
 
     try {
         // 1. 変数とストレージのチェック
