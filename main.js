@@ -1282,7 +1282,7 @@ if (aiViewBtn) {
         // 「この人に紐づくAI結果（例: currentSelectedHistoryResult）」を取り出す
         const targetResult = currentSelectedHistoryResult || ""; 
 
-        const aiResultContainer = document.getElementById('ai-chat-messages');
+        aiResultContainer = document.getElementById('ai-chat-messages');
         if (aiResultContainer) {
             aiResultContainer.innerText = targetResult; // その人の結果だけを正確に描画
             aiResultContainer.style.display = 'block'; // 必要なら表示
