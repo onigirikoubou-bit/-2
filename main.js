@@ -1199,18 +1199,20 @@ function closeBottomPane() {
 function reflectHistory(index) {
     console.log("=== 【デバッグ】履歴クリック（取込）開始 index:", index, " ===");
 
-    // 1. ローカルストレージから履歴一覧を取得
+// 1. ローカルストレージから履歴一覧を取得
     const data = localStorage.getItem('searchHistory');
     const history = data ? JSON.parse(data) : [];
     const h = history[index];
 
-    // 1. この履歴専用のAI結果を変数にセットする（なければ空にする）
-currentLoadedHistoryResult = h.result || "";
-
+    // ★【修正】まず最初に「そのデータの存在確認」を確実に行う！
     if (!h) {
         console.log("❌ エラー: 指定されたインデックスの履歴データが存在しません。");
+        currentLoadedHistoryResult = ""; // データがない場合は変数も空にする
         return;
     }
+
+    // ★【修正】存在が確認できてから、この履歴専用のAI結果を変数に安全にセットする
+    currentLoadedHistoryResult = h.result || "";
 
     // --- ★追加：クリックされたら画面の上部へスムーズにスクロールする ---
     window.scrollTo({
