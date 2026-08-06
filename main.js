@@ -2063,3 +2063,75 @@ function appendChatMessage(sender, text) {
     messageDiv.scrollIntoView({ behavior: 'smooth', block: 'end' });
 }
 
+function reflectHistory(index) {
+    console.log("=== 【デバッグ】履歴クリック（取込）開始 index:", index, " ===");
+
+    // 1. ローカルストレージから履歴一覧を取得
+    const data = localStorage.getItem('searchHistory');
+    const history = data ? JSON.parse(data) : [];
+    const h = history[index];
+
+    if (!h) {
+        console.log("❌ エラー: 指定されたインデックスの履歴データが存在しません。");
+        return;
+    }
+
+    // 画面上部へスクロール
+    window.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+    });
+
+    // 2. 日付やコメント等の復元処理
+    const parts = h.date.split('/');
+    if (parts.length >= 3) {
+        const yearInput = document.getElementById('year-input');
+        const monthInput = document.getElementById('month-input');
+        const dayInput = document.getElementById('day-input');
+        if (yearInput) yearInput.value = parts[0];
+        if (monthInput) monthInput.value = parseInt(parts[1], 10);
+        if (dayInput) dayInput.value = parseInt(parts[2], 10);
+    }
+    
+    const commentInput = document.getElementById('comment-input');
+    if (commentInput) {
+        commentInput.value = h.comment || "";
+    }
+
+    // 性別の復元処理
+    const savedGender = h.gender || h.sex;
+    if (savedGender) {
+        const gVal = String(savedGender).trim();
+        const isFemale = gVal.includes('女') || gVal.toLowerCase().includes('female') || gVal.toLowerCase() === 'f';
+        const targetRadio = document.getElementById(isFemale ? 'female' : 'male');
+        
+        if (targetRadio) {
+            targetRadio.checked = true;
+            targetRadio.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+    }
+
+    // 3. まず先に命式の計算・描画を実行する
+    // ※performCalculationの冒頭でボタンがいったん消えますが、この後すぐに判定で上書きします
+    if (typeof performCalculation === 'function') {
+        performCalculation();
+    }
+
+    // 4. 【最重要】計算が終わった「一番最後」に、この履歴データにAI結果があるかどうかに応じてボタンを確実に制御する
+    const actionArea = document.getElementById('history-action-area');
+    const aiResultContainer = document.getElementById('ai-chat-messages');
+
+    if (h.result && h.result.trim() !== '') {
+        // 履歴にAI結果が存在する場合：テキストをセットして、ボタンを表示する
+        currentLoadedHistoryResult = h.result;
+        if (aiResultContainer) aiResultContainer.innerText = h.result;
+        if (actionArea) actionArea.style.display = 'block'; // または 'inline-block' 等
+        console.log("✅ 履歴からAI結果を復元し、ボタンを表示しました。");
+    } else {
+        // 履歴にAI結果が存在しない場合：空にして、ボタンを確実に非表示にする
+        currentLoadedHistoryResult = "";
+        if (aiResultContainer) aiResultContainer.innerText = "";
+        if (actionArea) actionArea.style.display = 'none';
+        console.log("🚫 AI結果がないため、ボタンを非表示にしました。");
+    }
+}
