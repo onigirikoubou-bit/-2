@@ -347,6 +347,15 @@ function performCalculation() {
         }
     }
 
+    const aiViewBtn = document.getElementById('showAiResultFromHistory-btn'); // ※ボタンのID
+    const aiResultContainer = document.getElementById('ai-chat-messages'); // ※結果表示エリアのID
+    
+    if (aiViewBtn) aiViewBtn.style.display = 'none';
+    if (aiResultContainer) {
+        aiResultContainer.innerText = '';
+        aiResultContainer.style.display = 'none';
+    }
+
     const y = parseInt(document.getElementById('year-input').value, 10);
     const m = parseInt(document.getElementById('month-input').value, 10);
     const d = parseInt(document.getElementById('day-input').value, 10);
