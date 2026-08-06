@@ -648,11 +648,18 @@ if (shareBtn) {
             const meishikiArea = document.getElementById('result-area'); 
             const daiunArea = document.getElementById('daiun-table-body')?.closest('table') || document.getElementById('daiun-container'); 
             
-            const aiResultContainer = document.getElementById('ai-chat-messages') || 
-                                      document.getElementById('ai-result') || 
-                                      document.getElementById('result-container') ||
-                                      document.querySelector('.ai-result-text'); 
-            
+            const aiResultContainer = document.getElementById('ai-chat-messages'); 
+            // 1. まず、AI結果エリアを「真っ白（空っぽ）」に初期化する！
+const aiResultContainer = document.getElementById('ai-chat-messages');
+if (aiResultContainer) {
+    aiResultContainer.innerText = ''; // ←ここで確実に前回の残骸を消す
+}
+
+// 2. その後、今回の履歴データにAI結果があればセットする
+if (h.result) {
+    if (aiResultContainer) aiResultContainer.innerText = h.result;
+}
+
             if (!meishikiArea) {
                 alert("保存するデータが見つかりません。");
                 return;
