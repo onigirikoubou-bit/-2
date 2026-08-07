@@ -1745,10 +1745,10 @@ async function sendFollowUpMessage() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                menuType: 'followup', // ★ 追加質問であることを示すタイプを指定
-                message: question,    // 今回の質問
+                menuType: 'followup',
+                message: question,
                 meishikiData: meishikiData,
-                history: conversationHistory // ★ これまでの会話履歴を同梱
+                history: conversationHistory
             })
         });
 
@@ -1760,12 +1760,34 @@ async function sendFollowUpMessage() {
         // AIからの回答を画面（結果エリアの末尾）に追記する
         appendChatMessage('ai', resultText);
 
-        // 必要に応じてローカルストレージの履歴を最新のAI回答に更新する
+        // ==========================================================
+        // ★【修正ここから】ローカルストレージの正しい履歴データを更新する
+        // ==========================================================
         const rawData = localStorage.getItem('searchHistory');
         let historyArray = rawData ? JSON.parse(rawData) : [];
-        if (historyArray.length > 0) {
-            historyArray[0].result = resultText;
+        
+        // グローバル変数や現在選択されているインデックス（例: selected.value など）を使って、
+        // 「今開いている履歴の番号」を特定して取得する（※もし変数名が違う場合はプロジェクトに合わせてください）
+        const currentIndex = (typeof selected !== 'undefined' && selected.value !== undefined) ? selected.value : 0;
+
+        if (historyArray.length > 0 && historyArray[currentIndex]) {
+            // ① 既存の result を取得する（なければ空）
+            let existingResult = historyArray[currentIndex].result || "";
+
+            // ② 今回の追加質問とAIの回答を見やすい形式で末尾に結合（追記）する
+            let updatedResult = existingResult + "\n\n【ご質問】\n" + question + "\n\n【AIからの回答】\n" + resultText;
+
+            // ③ 結合した完全なテキストを、この履歴専用の result に代入する
+            historyArray[currentIndex].result = updatedResult;
+
+            // ④ 一時保持用の変数（currentLoadedHistoryResult）も最新の状態に同期しておく
+            if (typeof currentLoadedHistoryResult !== 'undefined') {
+                currentLoadedHistoryResult = updatedResult;
+            }
+
+            // ⑤ ローカルストレージ全体を保存し直す
             localStorage.setItem('searchHistory', JSON.stringify(historyArray));
+            console.log("✅ 追加質問の結果を現在の履歴の末尾に追記・保存しました。");
         }
 
     } catch (e) {
