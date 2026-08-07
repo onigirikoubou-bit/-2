@@ -765,6 +765,8 @@ document.addEventListener('DOMContentLoaded', () => {
         calcBtn.parentNode.replaceChild(newCalcBtn, calcBtn);
 
         newCalcBtn.addEventListener('click', () => {
+            // 新しい計算をするので、古いAI結果をここで必ずリセットする！
+    currentLoadedHistoryResult = ""; 
             performCalculation(); // 計算実行
 
             const y = document.getElementById('year-input')?.value || "";
@@ -777,9 +779,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // ★ 現在選択されている性別を取得する
                 const genderRadio = document.querySelector('input[name="gender"]:checked');
                 const currentGender = genderRadio ? genderRadio.value : 'male';
-
-                // ★ 現在保持しているAI鑑定結果（もしあれば）を一緒に保存する
-                const aiResultToSave = typeof currentLoadedHistoryResult !== 'undefined' ? currentLoadedHistoryResult : "";
+                const aiResultToSave = "";
                 
                 // 第4引数に性別（currentGender）を渡して保存する
                 HistoryModule.save(`${y}/${m}/${d}`, title, aiResultToSave, currentGender);
