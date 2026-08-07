@@ -171,6 +171,7 @@ ${menuDescription}
         error: "AIとの通信中にエラーが発生しました。"
     });
 }
+});
 
 // Renderから指定されるポートを動的に取得して起動
 const PORT = process.env.PORT || 3000;
