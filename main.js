@@ -836,6 +836,14 @@ async function saveResultHandler() {
     // ==========================================
     let aiHtmlContent = "";
     const chatContainer = document.getElementById('ai-chat-messages');
+    
+    if (chatContainer) {
+    chatContainer.innerHTML = ""; // ◀️ これで画面上に残っていた「前の人の残骸」を完全に消し去る！
+}
+
+// 同時に、グローバル変数もその履歴のもの（なければ空）に更新する
+currentLoadedHistoryResult = h.result || "";
+    
     if (chatContainer && chatContainer.innerText.trim() !== "") {
         aiHtmlContent = chatContainer.innerHTML;
     } else if (typeof currentLoadedHistoryResult !== 'undefined' && currentLoadedHistoryResult) {
