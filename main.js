@@ -1658,6 +1658,13 @@ async function requestAiConsultation() {
 
         const resultText = data.result || data.message || "鑑定結果を取得しました。";
         
+        if (!response.ok) {
+    // サーバーから返ってきたエラーメッセージ（またはデフォルトのメッセージ）を表示
+    const errorMessage = data.error || "エラーが発生しました。";
+    appendChatMessage('ai', errorMessage); // または alert(errorMessage); など
+    return;
+}
+
         // ==========================================
         // ★ 修正：menuType が相性診断かどうかで処理を分岐する！
         // ==========================================
@@ -1759,6 +1766,13 @@ async function sendFollowUpMessage() {
         
         // AIからの回答を画面（結果エリアの末尾）に追記する
         appendChatMessage('ai', resultText);
+
+        if (!response.ok) {
+    // サーバーから返ってきたエラーメッセージ（またはデフォルトのメッセージ）を表示
+    const errorMessage = data.error || "エラーが発生しました。";
+    appendChatMessage('ai', errorMessage); // または alert(errorMessage); など
+    return;
+}
 
         // ==========================================================
         // ★【修正ここから】ローカルストレージの正しい履歴データを更新する

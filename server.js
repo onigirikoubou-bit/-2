@@ -152,10 +152,25 @@ ${menuDescription}
         res.json({ result: response.text });
 
     } catch (error) {
-        console.error("Kantei API Error:", error);
-        res.status(500).json({ error: 'AIとの通信中にエラーが発生しました。' });
+    console.error("Kantei API Error:", error);
+
+    // 🔴 混雑エラー（503 または "high demand"）かどうかをチェックする
+    const isBusyError = error.status === 503 || 
+                        (error.message && error.message.includes('high demand')) ||
+                        (error.message && error.message.includes('UNAVAILABLE'));
+
+    if (isBusyError) {
+        // ユーザー向けに親切なメッセージを返す
+        return res.status(503).json({
+            error: "現在、AIサーバーが非常に混み合っております。お手数ですが、1〜2分ほど時間を置いてから再度お試しください。"
+        });
     }
-});
+
+    // その他の通常のエラーの場合
+    res.status(500).json({
+        error: "AIとの通信中にエラーが発生しました。"
+    });
+}
 
 // Renderから指定されるポートを動的に取得して起動
 const PORT = process.env.PORT || 3000;
