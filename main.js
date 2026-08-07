@@ -133,8 +133,21 @@ const HistoryModule = {
         const history = data ? JSON.parse(data) : [];
         const h = history[selected.value];
 
-        if (!h) return;
+        if (!h) {
+        console.log("❌ エラー: 指定されたインデックスの履歴データが存在しません。");
+        currentLoadedHistoryResult = ""; // 安全のため空にする
+        return;
+    }
 
+    // ★【ここが超重要！】
+    // AI結果があればセットする。なければ「強制的に空文字（""）」にして、古いデータが残らないようにする！
+    if (h.result && h.result.trim() !== "") {
+        currentLoadedHistoryResult = h.result;
+        console.log("この履歴のAI結果をセットしました。文字数:", h.result.length);
+    } else {
+        currentLoadedHistoryResult = ""; // ←これがないと、前の人の結果が残り続けます！
+        console.log("この履歴にはAI結果が保存されていません。");
+    }
 
         // 日付解析＆フォーム反映
         const matches = h.date.match(/(\d+)\/(\d+)\/(\d+)/);
