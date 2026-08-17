@@ -435,7 +435,7 @@ function performCalculation() {
     
     const baseSetsuiriDate = new Date(baseSetsuiriYear, baseSetsuiriMonth - 1, baseSetsuiriDay, 12, 0, 0);
     const birthDate = new Date(y, m - 1, d, 12, 0, 0);
-    const dayDiff = Math.round((birthDate.getTime() - baseSetsuiriDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    const dayDiff = Math.round((birthDate.getTime() - baseSetsuiriDate.getTime()) / (1000 * 60 * 60 * 24));
 
     const bValue = getZoukanByDay(nishi, dayDiff);
     const fValue = getZoukanByDay(nenshi, dayDiff);
