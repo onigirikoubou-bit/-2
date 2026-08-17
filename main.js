@@ -591,7 +591,7 @@ if (shugoshinArea && shugoshinContent && shugoInfo) {
     // 大運計算
     const isMale = document.getElementById('male')?.checked || false;
     
-    // 【修正】元の正しい判定（=== 0）に戻しました
+    // 順行・逆行の判定
     const isForward = (isMale === (yearIndex % 2 === 0));
 
     // 変数名の競合を防ぐため daiunBirthDate に変更
@@ -622,15 +622,14 @@ if (shugoshinArea && shugoshinContent && shugoInfo) {
 
     // --- 修正後の計算ロジック ---
     
-    // 1. 日数計算（ミリ秒から整数にするため Math.floor を使用）
+    // 1. 節入り日と誕生日の純粋な日数差を計算（ミリ秒から整数へ変換）
     const diffTime = Math.abs(targetSetsuiriDate - daiunBirthDate);
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
     
-    // 2. 流派のルールに基づき日数を確定
-    // 「+ 1」は節入り日当日を含めるための調整として維持
-    const kiunDays = diffDays + 1;
+    // 2. 一律の +1 を外し、純粋な日数（例：9/2〜9/8なら6日）をそのままキウン日数とする
+    const kiunDays = diffDays;
     
-    // 3. 歳運数を算出（小数点以下を繰り上げる Math.ceil）
+    // 3. 歳運数を算出（3日＝1年、小数点以下を切り上げる Math.ceil）
     const daiunNen = Math.max(0, Math.ceil(kiunDays / 3));
 
     console.log("計算デバッグ:", { kiunDays, daiunNen }); // コンソールで値を確認できます
