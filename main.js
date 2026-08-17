@@ -1525,7 +1525,29 @@ function collectCurrentMeishikiData() {
             posI: getText('pos-i')
         },
         // 守護神・中殺・位相法などの詳細テキスト
-        shugoshinAndDetails: getText('shugoshin-content')
+        shugoshinAndDetails: getText('shugoshin-content'),
+
+        // ★【ここを追加】テーブルから逆引きした現在の大運データを同梱する！
+        currentDaiun: getSelectedDaiunFromTable()
+    };
+}
+
+// 画面のテーブルから「現在の大運データ」を自動で読み取る関数
+function getSelectedDaiunFromTable() {
+    // 現在の年齢行（ハイライトされている行）を探す
+    const currentRow = document.querySelector('#daiun-table-body tr.current-age-row');
+    
+    if (!currentRow) {
+        return { ageRange: "不明", eto: "不明", judai: "不明", juni: "不明" };
+    }
+
+    // 行の中にあるセル（TD）からテキストをそれぞれ抜き出す
+    const cells = currentRow.querySelectorAll('td');
+    return {
+        ageRange: cells[0] ? cells[0].innerText.trim() : "", // 年齢範囲 (例: 35歳〜44歳)
+        eto: cells[1] ? cells[1].innerText.trim() : "",      // 干支 (例: 甲子)
+        judai: cells[2] ? cells[2].innerText.trim() : "",    // 十大主星
+        juni: cells[3] ? cells[3].innerText.trim() : ""      // 十二従星
     };
 }
 
