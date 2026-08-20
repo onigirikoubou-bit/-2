@@ -1406,6 +1406,7 @@ function getFigureData(type) {
         case 'shocking':    return window.SHOCKING_FIGURES;
         case 'royal_figures':    return window.ROYAL_FIGURES;
         case 'prime_ministers':    return window.PRIME_MINISTERS;
+        case 'textbook_figures':    return window.TEXTBOOK_FIGURES;
         default:           return null;
     }
 }
