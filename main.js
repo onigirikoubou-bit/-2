@@ -20,6 +20,12 @@ const ZOUKAN_ALL_MAP = {
     '申': ['戊','壬','庚'], '酉': ['辛'], '戌': ['辛','丁','戊'], '亥': ['甲','壬']
 };
 
+// --- 1. ヘルパー関数（ファイルのトップレベルや関数の外に置いておくのがおすすめ） ---
+    const SETSUKI_NAMES = [
+        "小寒", "立春", "啓蟄", "清明", "立夏", "芒種", 
+        "小暑", "立秋", "白露", "寒露", "立冬", "大雪"
+    ];
+
 // main.js の一番上のほうに書いてください
 let sharedData = {
     y: "", m: "", d: "", comment: ""
@@ -589,52 +595,77 @@ if (shugoshinArea && shugoshinContent && shugoInfo) {
     shugoshinArea.style.display = 'block';
 
     // 大運計算
-    const isMale = document.getElementById('male')?.checked || false;
-    
-    // 順行・逆行の判定
-    const isForward = (isMale === (yearIndex % 2 === 0));
+    function getAccurateSetsuiriDateFromMaster(year, month) {
+        if (year >= 1800 && typeof SEKKI_MASTER !== 'undefined' && SEKKI_MASTER[year]) {
+            const setsukiName = SETSUKI_NAMES[(month - 1 + 12) % 12];
+            const dateStr = SEKKI_MASTER[year][setsukiName];
+            if (dateStr) {
+                return new Date(dateStr);
+            }
+        }
+        return null;
+    }
 
-    // 変数名の競合を防ぐため daiunBirthDate に変更
+    // --- 2. 大運計算のメイン処理 ---
+    const isMale = document.getElementById('male')?.checked || false;
+    const isForward = (isMale === (yearIndex % 2 === 0));
     const daiunBirthDate = new Date(y, m - 1, d, 12, 0, 0);
+
+    // お手元と同じように let で宣言
     let targetSetsuiriDate;
 
+    // ① まず 1800年以降であれば SEKKI_MASTER からの取得を試みる
     if (isForward) {
-        // 順行：次の節入り日までの日数を数える
         if (d < currentSetsuiri) {
-            targetSetsuiriDate = new Date(y, m - 1, currentSetsuiri, 12, 0, 0);
+            targetSetsuiriDate = getAccurateSetsuiriDateFromMaster(y, m);
         } else {
             let nextY = y, nextM = m;
             if (nextM === 12) { nextY += 1; nextM = 1; } else { nextM += 1; }
-            const nextSetsuiriDay = setsuiriDays[(nextM - 1) % 12];
-            targetSetsuiriDate = new Date(nextY, nextM - 1, nextSetsuiriDay, 12, 0, 0);
+            targetSetsuiriDate = getAccurateSetsuiriDateFromMaster(nextY, nextM);
         }
     } else {
-        // 逆行：前の節入り日までの日数を数える
         if (d >= currentSetsuiri) {
-            targetSetsuiriDate = new Date(y, m - 1, currentSetsuiri, 12, 0, 0);
+            targetSetsuiriDate = getAccurateSetsuiriDateFromMaster(y, m);
         } else {
             let prevY = y, prevM = m;
             if (prevM === 1) { prevY -= 1; prevM = 12; } else { prevM -= 1; }
-            const prevSetsuiriDay = setsuiriDays[(prevM - 1) % 12];
-            targetSetsuiriDate = new Date(prevY, prevM - 1, prevSetsuiriDay, 12, 0, 0);
+            targetSetsuiriDate = getAccurateSetsuiriDateFromMaster(prevY, prevM);
         }
     }
 
-    // --- 修正後の計算ロジック ---
-    
-    // 1. 節入り日と誕生日の純粋な日数差を計算（ミリ秒から整数へ変換）
+    // ② もしマスターから取得できなかった場合（1800年未満、またはデータがない場合）は、従来の計算を入れる
+    if (!targetSetsuiriDate) {
+        if (isForward) {
+            if (d < currentSetsuiri) {
+                targetSetsuiriDate = new Date(y, m - 1, currentSetsuiri, 12, 0, 0);
+            } else {
+                let nextY = y, nextM = m;
+                if (nextM === 12) { nextY += 1; nextM = 1; } else { nextM += 1; }
+                const nextSetsuiriDay = setsuiriDays[(nextM - 1) % 12];
+                targetSetsuiriDate = new Date(nextY, nextM - 1, nextSetsuiriDay, 12, 0, 0);
+            }
+        } else {
+            if (d >= currentSetsuiri) {
+                targetSetsuiriDate = new Date(y, m - 1, currentSetsuiri, 12, 0, 0);
+            } else {
+                let prevY = y, prevM = m;
+                if (prevM === 1) { prevY -= 1; prevM = 12; } else { prevM -= 1; }
+                const prevSetsuiriDay = setsuiriDays[(prevM - 1) % 12];
+                targetSetsuiriDate = new Date(prevY, prevM - 1, prevSetsuiriDay, 12, 0, 0);
+            }
+        }
+    }
+
+    // --- 3. 日数・歳運数の算出 ---
     const diffTime = Math.abs(targetSetsuiriDate - daiunBirthDate);
     const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
     
-    // 2. 一律の +1 を外し、純粋な日数（例：9/2〜9/8なら6日）をそのままキウン日数とする
     const kiunDays = diffDays;
-    
-    // 3. 歳運数を算出（3日＝1年、小数点以下を切り上げる Math.ceil）
     const daiunNen = Math.max(0, Math.ceil(kiunDays / 3));
 
-    console.log("計算デバッグ:", { kiunDays, daiunNen }); // コンソールで値を確認できます
+    console.log("計算デバッグ:", { kiunDays, daiunNen, targetSetsuiriDate });
 
-    // 4. 結果の出力
+    // --- 4. 結果の出力 ---
     renderDaiunTable(daiunNen, KANTO_LIST[(KANTO_LIST.indexOf(trueMonthEto) + (isForward ? 1 : -1) + 60) % 60], isForward, nikkan, age);
     document.getElementById('result-area').style.display = 'block';
 
