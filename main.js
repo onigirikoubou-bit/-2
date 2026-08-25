@@ -1551,8 +1551,8 @@ function collectCurrentMeishikiData() {
             posD: getText('pos-d'), // 腹（主星など）
             posE: getText('pos-e'), // 中年
             posF: getText('pos-f'),
-            posG: getText('pos-h'),
-            posH: getText('pos-g'),
+            posG: getText('pos-g'),
+            posH: getText('pos-h'),
             posI: getText('pos-i')
         },
         // 守護神・中殺・位相法などの詳細テキスト
