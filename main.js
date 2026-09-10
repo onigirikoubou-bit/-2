@@ -360,7 +360,6 @@ function performCalculation() {
     if (oldData) {
         try {
             tempPartnerData = JSON.parse(oldData);
-            console.log("一時変数 tempPartnerData に1人目のデータを退避しました:", tempPartnerData);
         } catch (e) {
             console.error("退避データのパースに失敗しました:", e);
         }
@@ -536,22 +535,19 @@ if (shugoshinArea && shugoshinContent && shugoInfo) {
     // --- 中殺・干合の計算 ---
     const chusatsuData = getKanseiData(trueYearEto, trueMonthEto, dayEto);
     
-    // --- 干合の判定 ---
+// --- 干合の判定（新しい仕組み） ---
     let kangoMsgs = [];
     
-    // 年・月干合の場合
-    const ngKango = getKangoInfo(nenkan, gekkan);
-    if (ngKango) {
-        // 月干が変化すると想定して「（月）」と表示
-        kangoMsgs.push(`${ngKango.pairName}（月）`);
-    }
+    // 年・月・日のすべての組み合わせ（年・月、月・日、年・日）をまとめてチェック
+    const kangoResults = checkAllKango(nenkan, gekkan, nikkan);
 
-    // 月・日干合の場合
-    const gnKango = getKangoInfo(gekkan, nikkan);
-    if (gnKango) {
-        // 月干または日干が変化すると想定して「（月）」と表示
-        kangoMsgs.push(`${gnKango.pairName}（月）`);
-    }
+    // 検出された干合結果をメッセージ用の配列に整形して詰める
+    kangoResults.forEach(item => {
+        // 例: 「丙辛（年・日）」や、必要に応じて表示形式を調整できます
+        kangoMsgs.push(`${item.pairName}（${item.between}）`);
+    });
+
+    console.log("干合チェック結果:", kangoMsgs);
     
     let msgs = [];
     if (chusatsuData.isNenChu) msgs.push("生年中殺");
@@ -663,7 +659,6 @@ if (shugoshinArea && shugoshinContent && shugoInfo) {
     const kiunDays = diffDays;
     const daiunNen = Math.max(0, Math.ceil(kiunDays / 3));
 
-    console.log("計算デバッグ:", { kiunDays, daiunNen, targetSetsuiriDate });
 
     // --- 4. 結果の出力 ---
     renderDaiunTable(daiunNen, KANTO_LIST[(KANTO_LIST.indexOf(trueMonthEto) + (isForward ? 1 : -1) + 60) % 60], isForward, nikkan, age);
@@ -675,7 +670,6 @@ if (shugoshinArea && shugoshinContent && shugoInfo) {
     const newData = collectCurrentMeishikiData();
     if (newData && newData.birthDate) {
         localStorage.setItem('sanmeigaku_previous_meishiki', JSON.stringify(newData));
-        console.log("ローカルストレージを最新データに更新しました:", newData);
     }
 }
 }
@@ -1085,6 +1079,35 @@ function getKangoInfo(kan1, kan2) {
     return match ? { pairName: match.name, result: match.result } : null;
 }
 
+function checkAllKango(yearKan, monthKan, dayKan) {
+    // 比較するペアのリスト
+    const pairs = [
+        { target: '年干・月干', kan1: yearKan, kan2: monthKan },
+        { target: '月干・日干', kan1: monthKan, kan2: dayKan },
+        { target: '年干・日干', kan1: yearKan, kan2: dayKan }
+    ];
+
+    const results = [];
+
+    pairs.forEach(p => {
+        // 先頭1文字（十干）だけにする安全策を組み込む場合
+        const k1 = typeof p.kan1 === 'string' ? p.kan1.charAt(0) : p.kan1;
+        const k2 = typeof p.kan2 === 'string' ? p.kan2.charAt(0) : p.kan2;
+
+        const info = getKangoInfo(k1, k2);
+        if (info) {
+            results.push({
+                between: p.target,
+                pairName: info.pairName,
+                result: info.result
+            });
+        }
+    });
+
+    console.log("デバッグ確認:", { yearKan, monthKan, dayKan });
+
+    return results; // 干合しているペアのリストを返す
+}
 
 // 戦国武将を表示する関数
 function displaySengoku() {
