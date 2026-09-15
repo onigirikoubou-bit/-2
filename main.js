@@ -685,83 +685,136 @@ if (shareBtn) {
             const meishikiArea = document.getElementById('result-area'); 
             const daiunArea = document.getElementById('daiun-table-body')?.closest('table') || document.getElementById('daiun-container'); 
             
-            // 1. まず、AI結果エリアを「真っ白（空っぽ）」に初期化する！
-aiResultContainer = document.getElementById('ai-chat-messages');
-if (aiResultContainer) {
-    aiResultContainer.innerText = ''; // ←ここで確実に前回の残骸を消す
-}
+            let aiResultContainer = document.getElementById('ai-chat-messages');
+            if (aiResultContainer) {
+                aiResultContainer.innerText = ''; // 残骸クリア
+            }
 
-// 2. その後、今回の履歴データにAI結果があればセットする
-if (h.result) {
-    if (aiResultContainer) aiResultContainer.innerText = h.result;
-}
+            if (typeof currentLoadedHistoryResult !== 'undefined' && currentLoadedHistoryResult) {
+                if (aiResultContainer) aiResultContainer.innerText = currentLoadedHistoryResult;
+            }
 
             if (!meishikiArea) {
                 alert("保存するデータが見つかりません。");
                 return;
             }
 
-            // ★厳密な判定：
-            // ① 要素が存在する
-            // ② CSSで非表示（display: none, visibility: hidden, opacity: 0）になっていない
-            // ③ 中身のテキストが空ではない、かつ「AI鑑定結果が非表示状態の文言」などになっていない
             let hasAiResult = false;
             if (aiResultContainer) {
                 const style = window.getComputedStyle(aiResultContainer);
                 const isVisible = style.display !== 'none' && 
                                   style.visibility !== 'hidden' && 
                                   style.opacity !== '0' &&
-                                  aiResultContainer.offsetHeight > 0; // 高さが0（＝折りたたまれている等）ではないか
-
+                                  aiResultContainer.offsetHeightpx > 0 || aiResultContainer.offsetHeight > 0;
                 const text = aiResultContainer.innerText.trim();
-                
-                // 「見えていて、かつ文字がしっかり入っている」場合のみ真にする
                 hasAiResult = isVisible && text !== '';
             }
 
-            // 2. キャプチャ専用の一時的な親ボックスを作成
+            // --- 2. キャプチャ専用の一時的な親ボックス作成（幅を厳格に 590px に固定） ---
             const wrapper = document.createElement('div');
             wrapper.style.position = 'absolute';
             wrapper.style.left = '-9999px';
             wrapper.style.top = '0';
-            wrapper.style.width = '800px';
-            wrapper.style.backgroundColor = '#ffffff';
-            wrapper.style.padding = '20px';
+            wrapper.style.width = '590px';
+            wrapper.style.maxWidth = '590px';
             wrapper.style.boxSizing = 'border-box';
+            wrapper.style.backgroundColor = '#fcfbf9';
+            wrapper.style.padding = '20px';
             wrapper.style.fontFamily = window.getComputedStyle(meishikiArea).fontFamily;
+            wrapper.style.overflow = 'hidden'; // はみ出し防止
 
-            // 3. パーツを順次追加
-            wrapper.appendChild(meishikiArea.cloneNode(true));
+            // --- 年齢・日付・性別・コメントの安全取得 ---
+            const cYear = document.getElementById('year-input')?.value || "xxxx";
+            const cMonth = document.getElementById('month-input')?.value || "xx";
+            const cDay = document.getElementById('day-input')?.value || "xx";
             
-            if (daiunArea) {
-                wrapper.appendChild(daiunArea.cloneNode(true));
+            // ★年齢の自動算出（または既存変数からのフォールバック）
+            let cAge = "";
+            if (typeof age !== 'undefined' && age) {
+                cAge = age;
+            } else if (cYear !== "xxxx") {
+                const birthY = parseInt(cYear, 10);
+                const birthM = parseInt(cMonth, 10) || 1;
+                const birthD = parseInt(cDay, 10) || 1;
+                const today = new Date();
+                let calcAge = today.getFullYear() - birthY;
+                const mDiff = today.getMonth() + 1 - birthM;
+                if (mDiff < 0 || (mDiff === 0 && today.getDate() < birthD)) {
+                    calcAge--;
+                }
+                cAge = calcAge >= 0 ? calcAge : "";
             }
 
-            // ★本当に表示されている時だけ追加する
+            const cCommentEl = document.getElementById('comment-input');
+            const cComment = cCommentEl ? cCommentEl.value : "";
+            
+            const rawGender = document.querySelector('input[name="gender"]:checked')?.value || "";
+            const displayGender = (rawGender === 'female' || rawGender.includes('女') || rawGender === 'f') ? '女性' : '男性';
+
+            // --- ヘッダー作成 ---
+            const infoHeader = document.createElement('div');
+            infoHeader.style.cssText = "margin-bottom:20px; border-bottom:2px solid #333; padding-bottom:10px; box-sizing:border-box; width:100%;";
+            infoHeader.innerHTML = `
+                <div style="font-weight:bold; font-size:20px; margin-bottom:8px; word-break:break-all;">
+                    ${cYear}/${cMonth}/${cDay}生${cComment ? `（${cComment}）` : ''}
+                </div>
+                <div style="display:flex; justify-content:space-between; align-items:center; font-size:15px; font-weight:bold;">
+                    <div>性別:${displayGender}${cAge !== "" ? ' / 年齢:' + cAge + '歳' : ''}</div>
+                    <div style="font-size:13px; color:#555;">作成日:${new Date().toLocaleDateString()}</div>
+                </div>
+            `;
+            wrapper.appendChild(infoHeader);
+
+            // --- パーツ追加（幅が親を突き破らないよう調整） ---
+            const cloneMeishiki = meishikiArea.cloneNode(true);
+            cloneMeishiki.style.width = '100%';
+            cloneMeishiki.style.boxSizing = 'border-box';
+            wrapper.appendChild(cloneMeishiki);
+            
+            if (daiunArea) {
+                const cloneDaiun = daiunArea.cloneNode(true);
+                cloneDaiun.style.marginTop = '15px';
+                cloneDaiun.style.width = '100%';
+                cloneDaiun.style.boxSizing = 'border-box';
+                wrapper.appendChild(cloneDaiun);
+            }
+
             if (hasAiResult) {
-                wrapper.appendChild(aiResultContainer.cloneNode(true));
+                const cloneAi = aiResultContainer.cloneNode(true);
+                cloneAi.style.marginTop = '15px';
+                cloneAi.style.width = '100%';
+                cloneAi.style.boxSizing = 'border-box';
+                wrapper.appendChild(cloneAi);
             }
 
             document.body.appendChild(wrapper);
 
-            // 4. html2canvas で画像化
+            // --- 4. html2canvas で画像化（完全固定幅） ---
             const canvas = await html2canvas(wrapper, {
                 scale: 2,
                 useCORS: true,
-                backgroundColor: "#ffffff",
-                windowWidth: wrapper.scrollWidth,
-                windowHeight: wrapper.scrollHeight
+                backgroundColor: "#fcfbf9",
+                width: 590,
+                windowWidth: 590
             });
 
             document.body.removeChild(wrapper);
 
-            // 5. JPGとしてダウンロード
+            // --- 5. ファイル名生成 & ダウンロード ---
             const imageURL = canvas.toDataURL('image/jpeg', 0.95);
             const link = document.createElement('a');
             
-            const commentVal = document.getElementById('comment-input')?.value || "算命学鑑定";
+            const fileDateStr = `${cYear}_${cMonth}_${cDay}`;
+            let fileName = "";
+            if (cComment && cComment.trim().length > 0) {
+                const cleanComment = cComment.replace(/[\/\-\:\*\?\"\<\>\|]/g, '_');
+                fileName = `鑑定_${fileDateStr}_${cleanComment.substring(0, 10)}.jpg`;
+            } else {
+                fileName = `鑑定_${fileDateStr}.jpg`;
+            }
+
             link.href = imageURL;
-            link.download = `${commentVal}_鑑定結果.jpg`;
+            link.download = fileName;
             
             document.body.appendChild(link);
             link.click();
@@ -938,25 +991,6 @@ currentLoadedHistoryResult = h.result || "";
         canvas.toBlob(blob => {
             if (!blob) return;
 
-            // --- ファイル名の生成ロジック ---
-            // 入力欄から現在の値を直接取得
-            const y = document.getElementById('year-input')?.value || "0000";
-            const m = document.getElementById('month-input')?.value || "0";
-            const d = document.getElementById('day-input')?.value || "0";
-            const comment = document.getElementById('comment-input')?.value || "";
-
-            let fileName = "";
-
-            if (comment && comment.trim().length > 0) {
-                // コメントがある場合：日付とコメントを組み合わせてファイル名にする
-                // ファイル名に使えない文字を「_」に置換し、長さを調整
-                const cleanComment = comment.replace(/[\/\-\:\*\?\"\<\>\|]/g, '_');
-                fileName = `鑑定_${y}_${m}_${d}_${cleanComment.substring(0, 10)}`;
-            } else {
-                // コメントがない場合：日付のみ
-                fileName = `鑑定_${y}_${m}_${d}`;
-            }
-            // ---------------------------
 
             const url = URL.createObjectURL(blob);
             const a = document.createElement("a");
