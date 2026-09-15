@@ -365,6 +365,14 @@ function performCalculation() {
         }
     }
 
+// AI鑑定結果を消去：
+const aiBox = document.getElementById('ai-chat-messages');
+if (aiBox) {
+    aiBox.innerText = '';
+    aiBox.innerHTML = '';
+}
+typeof currentLoadedHistoryResult !== 'undefined' && (currentLoadedHistoryResult = '');
+
     const y = parseInt(document.getElementById('year-input').value, 10);
     const m = parseInt(document.getElementById('month-input').value, 10);
     const d = parseInt(document.getElementById('day-input').value, 10);
