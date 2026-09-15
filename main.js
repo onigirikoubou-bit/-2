@@ -685,13 +685,17 @@ if (shareBtn) {
             const meishikiArea = document.getElementById('result-area'); 
             const daiunArea = document.getElementById('daiun-table-body')?.closest('table') || document.getElementById('daiun-container'); 
             
+            // --- AI結果の取得 ---
             let aiResultContainer = document.getElementById('ai-chat-messages');
-            if (aiResultContainer) {
-                aiResultContainer.innerText = ''; // 残骸クリア
-            }
+            let aiTextContent = "";
 
-            if (typeof currentLoadedHistoryResult !== 'undefined' && currentLoadedHistoryResult) {
-                if (aiResultContainer) aiResultContainer.innerText = currentLoadedHistoryResult;
+            if (aiResultContainer && aiResultContainer.innerText.trim() !== "") {
+                aiTextContent = aiResultContainer.innerText.trim();
+            } else if (typeof currentLoadedHistoryResult !== 'undefined' && currentLoadedHistoryResult) {
+                aiTextContent = currentLoadedHistoryResult;
+                if (aiResultContainer) {
+                    aiResultContainer.innerText = aiTextContent;
+                }
             }
 
             if (!meishikiArea) {
@@ -699,16 +703,8 @@ if (shareBtn) {
                 return;
             }
 
-            let hasAiResult = false;
-            if (aiResultContainer) {
-                const style = window.getComputedStyle(aiResultContainer);
-                const isVisible = style.display !== 'none' && 
-                                  style.visibility !== 'hidden' && 
-                                  style.opacity !== '0' &&
-                                  aiResultContainer.offsetHeightpx > 0 || aiResultContainer.offsetHeight > 0;
-                const text = aiResultContainer.innerText.trim();
-                hasAiResult = isVisible && text !== '';
-            }
+            // ★シンプル＆確実：テキストさえあれば有りとみなす
+            const hasAiResult = (aiTextContent.trim() !== "");
 
             // --- 2. キャプチャ専用の一時的な親ボックス作成（幅を厳格に 590px に固定） ---
             const wrapper = document.createElement('div');
@@ -780,10 +776,29 @@ if (shareBtn) {
             }
 
             if (hasAiResult) {
-                const cloneAi = aiResultContainer.cloneNode(true);
+                let cloneAi;
+                if (aiResultContainer && aiResultContainer.innerHTML.trim() !== "") {
+                    cloneAi = aiResultContainer.cloneNode(true);
+                } else {
+                    cloneAi = document.createElement('div');
+                    cloneAi.innerText = aiTextContent;
+                }
+                
                 cloneAi.style.marginTop = '15px';
                 cloneAi.style.width = '100%';
                 cloneAi.style.boxSizing = 'border-box';
+                cloneAi.style.display = 'block';
+                cloneAi.style.visibility = 'visible';
+                cloneAi.style.opacity = '1';
+                cloneAi.style.whiteSpace = 'pre-wrap';
+                cloneAi.style.fontSize = '14px';
+                cloneAi.style.lineHeight = '1.6';
+                cloneAi.style.color = '#333';
+                cloneAi.style.backgroundColor = '#fff';
+                cloneAi.style.padding = '10px';
+                cloneAi.style.borderRadius = '6px';
+                cloneAi.style.border = '1px solid #ddd';
+
                 wrapper.appendChild(cloneAi);
             }
 
