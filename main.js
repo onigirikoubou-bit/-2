@@ -799,11 +799,11 @@ if (shareBtn) {
                 cloneAi.style.visibility = 'visible';
                 cloneAi.style.opacity = '1';
                 cloneAi.style.whiteSpace = 'pre-wrap';
-                cloneAi.style.fontSize = '14px';
-                cloneAi.style.lineHeight = '1.6';
+                cloneAi.style.fontSize = '18px';
+                cloneAi.style.lineHeight = '1.7';
                 cloneAi.style.color = '#333';
                 cloneAi.style.backgroundColor = '#fff';
-                cloneAi.style.padding = '10px';
+                cloneAi.style.padding = '12px';
                 cloneAi.style.borderRadius = '6px';
                 cloneAi.style.border = '1px solid #ddd';
 
