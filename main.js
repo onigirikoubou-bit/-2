@@ -680,6 +680,22 @@ if (shugoshinArea && shugoshinContent && shugoInfo) {
         localStorage.setItem('sanmeigaku_previous_meishiki', JSON.stringify(newData));
     }
 }
+
+// === 計算・描画完了後に命式の位置までスクロールする ===
+    // 命式エリア（例: 'result-area'）または、その少し上の要素を取得
+    const targetElement = document.getElementById('result-area') || document.querySelector('.result-section');
+    
+    if (targetElement) {
+        // 要素の位置を計算し、少し上に余裕（パディング）を持たせてスクロール
+        const elementRect = targetElement.getBoundingClientRect();
+        const absoluteElementTop = elementRect.top + window.pageYOffset;
+        const offset = 20; // 履歴取込ボタンとの間に少し隙間を空ける調整値（px）
+
+        window.scrollTo({
+            top: absoluteElementTop - offset,
+            behavior: 'smooth' // スムーズにスクロールさせたい場合は 'smooth'、一瞬で移動させたい場合は 'auto'
+        });
+    }
 }
 
 const shareBtn = document.getElementById('share-or-copy-btn');
@@ -1277,7 +1293,6 @@ function reflectData(name, type) {
     if (typeof performCalculation === 'function') {
         performCalculation();
     }
-    window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 // 過去履歴ボタンから呼び出される関数
