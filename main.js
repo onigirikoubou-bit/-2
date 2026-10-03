@@ -219,19 +219,91 @@ function setEto(elementId, etoText) {
 
 // 2支の判定表（位相法1）
 const ishou1Map = {
-    "子": {"丑": "支合", "卯": "旺気刑", "午": "冲動", "未": "害", "酉": "破"},
-    "丑": {"子": "支合", "辰": "破", "巳": "害", "午": "冲動・庫気刑", "戌": "庫気刑"},
-    "寅": {"巳": "害・生貴刑", "申": "冲動・生貴刑", "亥": "支合"},
-    "卯": {"子": "旺気刑", "辰": "害", "午": "破", "酉": "冲動", "戌": "支合"},
-    "辰": {"丑": "破", "卯": "害", "辰": "自刑", "酉": "支合", "戌": "冲動"},
-    "巳": {"寅": "害・生貴刑", "申": "支合・生貴刑", "亥": "冲動"},
-    "午": {"子": "冲動", "丑": "害", "卯": "破", "午": "自刑", "未": "支合"},
-    "未": {"子": "害", "丑": "冲動・庫気刑", "未": "支合", "亥": "庫気刑・破"},
-    "申": {"寅": "冲動・生貴刑", "巳": "支合・生貴刑", "亥": "害"},
-    "酉": {"子": "破", "卯": "冲動", "辰": "支合", "酉": "自刑", "戌": "害"},
-    "戌": {"丑": "庫気刑", "卯": "支合", "辰": "冲動", "未": "庫気刑・破", "酉": "害"},
-    "亥": {"寅": "支合", "巳": "冲動", "申": "害", "亥": "自刑"}
+    "子": {
+        "丑": "支合", 
+        "卯": "旺気刑", 
+        "午": "冲動", 
+        "未": "害", 
+        "酉": "破"
+    },
+    "丑": {
+        "子": "支合", 
+        "辰": "破", 
+        "午": "害", 
+        "未": "冲動・庫気刑", 
+        "戌": "庫気刑"
+    },
+    "寅": {
+        "巳": "害・生貴刑", 
+        "申": "冲動・生貴刑", 
+        "亥": "支合"
+    },
+    "卯": {
+        "子": "旺気刑", 
+        "辰": "害", 
+        "午": "破", 
+        "酉": "冲動", 
+        "戌": "支合"
+    },
+    "辰": {
+        "丑": "破", 
+        "卯": "害", 
+        "辰": "自刑", 
+        "酉": "支合", 
+        "戌": "冲動"
+    },
+    "巳": {
+        "寅": "害・生貴刑", 
+        "申": "支合・生貴刑", 
+        "亥": "冲動"
+    },
+    "午": {
+        "子": "冲動", 
+        "丑": "害", 
+        "卯": "破", 
+        "午": "自刑", 
+        "未": "支合"
+    },
+    "未": {
+        "子": "害", 
+        "丑": "冲動・庫気刑", 
+        "午": "支合", 
+        "戌": "庫気刑・破"
+    },
+    "申": {
+        "寅": "冲動・生貴刑", 
+        "巳": "支合・生貴刑", 
+        "亥": "害"
+    },
+    "酉": {
+        "子": "破", 
+        "卯": "冲動", 
+        "辰": "支合", 
+        "酉": "自刑", 
+        "戌": "害"
+    },
+    "戌": {
+        "丑": "庫気刑", 
+        "卯": "支合", 
+        "辰": "冲動", 
+        "未": "庫気刑・破", 
+        "酉": "害"
+    },
+    "亥": {
+        "寅": "支合", 
+        "巳": "冲動", 
+        "申": "害", 
+        "亥": "自刑"
+    }
 };
+
+// 2. 位相法グループの定義（位相法2の表を整理） ★これが定義されているか要確認
+const ishou2Groups = [
+    { name: "申子辰", branches: ["申", "子", "辰"] },
+    { name: "巳酉丑", branches: ["巳", "酉", "丑"] },
+    { name: "寅午戌", branches: ["寅", "午", "戌"] },
+    { name: "亥卯未", branches: ["亥", "卯", "未"] }
+];
 
 // ==========================================
 // 2. 補助計算関数
@@ -557,16 +629,8 @@ if (shugoshinArea && shugoshinContent && shugoInfo) {
 
     console.log("干合チェック結果:", kangoMsgs);
     
-    let msgs = [];
-    if (chusatsuData.isNenChu) msgs.push("生年中殺");
-    if (chusatsuData.isGetsuChu) msgs.push("生月中殺");
-    if (chusatsuData.isNichiChu) msgs.push("生日中殺");
-    if (chusatsuData.isNishu) msgs.push("宿命二中殺");
-    if (chusatsuData.isGokan) msgs.push("互換中殺");
-    if (chusatsuData.isNichiza) msgs.push("日座中殺");
-    if (chusatsuData.isZen) msgs.push("全中殺");
-    if (chusatsuData.ijoCount > 0) msgs.push(`異常干支(${chusatsuData.ijoCount}個)`);
-
+// performCalculation や addEventListener の中ではこう書くだけでOK！
+let msgs = getChusatsuAndIjoMsgs(chusatsuData);
 
     // 3. 表示の更新
     shugoshinContent.innerHTML = `
@@ -673,6 +737,16 @@ if (shugoshinArea && shugoshinContent && shugoInfo) {
     document.getElementById('result-area').style.display = 'block';
 
     showDiagnosis(map);
+
+    // --- 4. 結果の出力 ---
+    renderDaiunTable(daiunNen, KANTO_LIST[(KANTO_LIST.indexOf(trueMonthEto) + (isForward ? 1 : -1) + 60) % 60], isForward, nikkan, age);
+    
+    // ★【追加】後天運の計算でも正確に使えるようにグローバル変数に保存しておく
+    window.currentDaiunNen = daiunNen;
+    window.currentIsForward = isForward;
+    window.currentBaseMonthEto = trueMonthEto; // または月干支の情報
+
+    document.getElementById('result-area').style.display = 'block';
 
     // 【ステップ②】今回新しく計算された最新データを、ローカルストレージに新しく書き込む
     const newData = collectCurrentMeishikiData();
@@ -872,7 +946,9 @@ if (shareBtn) {
 document.addEventListener('DOMContentLoaded', () => {
     
     // --- 0. 初回読み込み時の表示 ---
-    HistoryModule.render();
+    if (typeof HistoryModule !== 'undefined' && HistoryModule.render) {
+        HistoryModule.render();
+    }
 
     // --- 1. 計算ボタンのイベント設定 ---
     const calcBtn = document.getElementById('calc-btn');
@@ -881,9 +957,12 @@ document.addEventListener('DOMContentLoaded', () => {
         calcBtn.parentNode.replaceChild(newCalcBtn, calcBtn);
 
         newCalcBtn.addEventListener('click', () => {
-            // 新しい計算をするので、古いAI結果をここで必ずリセットする！
-    currentLoadedHistoryResult = ""; 
-            performCalculation(); // 計算実行
+            if (typeof currentLoadedHistoryResult !== 'undefined') {
+                currentLoadedHistoryResult = ""; 
+            }
+            if (typeof performCalculation === 'function') {
+                performCalculation(); // 計算実行
+            }
 
             const y = document.getElementById('year-input')?.value || "";
             const m = document.getElementById('month-input')?.value || "";
@@ -892,19 +971,224 @@ document.addEventListener('DOMContentLoaded', () => {
             const title = (comment && comment.trim() !== "") ? comment.trim() : "";
 
             if (y && m && d) {
-                // ★ 現在選択されている性別を取得する
                 const genderRadio = document.querySelector('input[name="gender"]:checked');
                 const currentGender = genderRadio ? genderRadio.value : 'male';
                 const aiResultToSave = "";
                 
-                // 第4引数に性別（currentGender）を渡して保存する
-                HistoryModule.save(`${y}/${m}/${d}`, title, aiResultToSave, currentGender);
-                HistoryModule.render();
+                if (typeof HistoryModule !== 'undefined' && HistoryModule.save) {
+                    HistoryModule.save(`${y}/${m}/${d}`, title, aiResultToSave, currentGender);
+                    HistoryModule.render();
+                }
             }
         });
     }
 
+    // --- 2. 後天運算出ボタンとモーダルの設定 ---
+    const calcKoutenBtn = document.getElementById('calc-kouten-btn');
+    const koutenModal = document.getElementById('kouten-modal');
+    const koutenCloseBtn = document.getElementById('kouten-close-btn');
+
+    const kanshiList = [
+        "甲子","乙丑","丙寅","丁卯","戊辰","己巳","庚午","辛未","壬申","癸酉",
+        "甲戌","乙亥","丙子","丁丑","戊寅","己卯","庚辰","辛巳","壬午","癸未",
+        "甲申","乙酉","丙戌","丁亥","戊子","己丑","庚寅","辛卯","壬辰","癸巳",
+        "甲午","乙未","丙申","丁酉","戊戌","己亥","庚子","辛丑","壬寅","癸卯",
+        "甲辰","乙巳","丙午","丁未","戊申","己酉","庚戌","辛亥","壬子","癸丑",
+        "甲寅","乙卯","丙辰","丁巳","戊午","己未","庚申","辛酉","壬戌","癸亥"
+    ];
+
+    function getYearKanshi(targetYear) {
+        const baseYear = 2026;
+        const baseIndex = 42; 
+        let diff = targetYear - baseYear;
+        let index = (baseIndex + (diff % 60)) % 60;
+        if (index < 0) index += 60;
+        return kanshiList[index];
+    }
+
+    if (calcKoutenBtn) {
+        calcKoutenBtn.onclick = () => {
+            const ageInput = document.getElementById('kouten-age-input').value;
+            const isManAge = document.getElementById('kouten-man-checkbox').checked;
+
+            if (!ageInput || isNaN(ageInput)) {
+                alert("年齢を入力してください。");
+                return;
+            }
+            const targetAge = parseInt(ageInput, 10);
+
+            const birthY = parseInt(document.getElementById('year-input')?.value, 10);
+            if (!birthY) {
+                alert("先に基本の生年月日を入力してください。");
+                return;
+            }
+
+            // 1. 正しい西暦の算出（満年齢オフなら +1）
+            let targetYear = birthY + targetAge;
+            if (!isManAge) {
+                targetYear += 1; 
+            }
+
+            const targetNenun = getYearKanshi(targetYear);
+
+            // 2. performCalculationで保存した正確な起運数（daiunNen）と順逆行をグローバルから取得
+            const daiunStartAge = typeof window.currentDaiunNen !== 'undefined' ? window.currentDaiunNen : 1; 
+            const isForward = typeof window.currentIsForward !== 'undefined' ? window.currentIsForward : true;
+            
+            const safeMonthEto = typeof trueMonthEto !== 'undefined' ? trueMonthEto : (window.currentBaseMonthEto || "甲子");
+            const firstDaiunEto = KANTO_LIST[(KANTO_LIST.indexOf(safeMonthEto) + (isForward ? 1 : -1) + 60) % 60];
+            
+            let currentIndex = KANTO_LIST.indexOf(firstDaiunEto);
+            let targetDaiun = firstDaiunEto; // 初期値
+
+            for (let i = 0; i < 15; i++) {
+                const rowStart = daiunStartAge + (i * 10);
+                const rowEnd = rowStart + 9;
+                
+                if (targetAge >= rowStart && targetAge <= rowEnd) {
+                    targetDaiun = KANTO_LIST[currentIndex];
+                    break;
+                }
+                
+                currentIndex = (currentIndex + (isForward ? 1 : -1) + 60) % 60;
+            }
+
+            // --- ★ ここに配置するのが最も安全で確実です！ ---
+
+            // 1. 年・月・日の支を安全に取得
+            const yearText = document.getElementById('year-eto')?.textContent || "";
+            const monthText = document.getElementById('month-eto')?.textContent || "";
+            const dayText = document.getElementById('day-eto')?.textContent || "";
+
+            const nenshi = yearText.slice(-1);
+            const gesshi = monthText.slice(-1);
+            const nishi = dayText.slice(-1);
+            // 2. 大運・年運の「支」を安全に抽出する
+            const dShi = targetDaiun ? targetDaiun.charAt(1) : "";
+            const nShi = typeof targetNenun !== 'undefined' && targetNenun ? targetNenun.charAt(1) : "";
+
+            // 3. 後天運の位相法をここで計算
+            const koutenIshouhouList = calculateKoutenIshouhou(
+                nenshi,    // 年の支
+                gesshi,    // 月の支
+                nishi,     // 日の支
+                dShi,      // 大運の支
+                nShi       // 年運の支
+            );
+
+            // --- 中殺・干合判定 ---
+            const safeNikkan = typeof nikkan !== 'undefined' ? nikkan : (typeof dayEto !== 'undefined' ? dayEto : "");
+            const safeYearEto = typeof nenkan !== 'undefined' ? nenkan : (typeof yearEto !== 'undefined' ? yearEto : "");
+
+            const chusatsuData = (typeof getKanseiData === 'function' && safeYearEto && safeMonthEto) 
+                ? getKanseiData(safeYearEto, safeMonthEto, safeNikkan) 
+                : {};
+            
+            let msgs = getChusatsuAndIjoMsgs(chusatsuData);
+
+            const tsGroup = (typeof getTenchusatsuByDayKanshi === 'function' && safeNikkan) 
+                ? getTenchusatsuByDayKanshi(safeNikkan) 
+                : [];
+            if (tsGroup.includes(targetDaiun.slice(-1))) msgs.push("大運天中殺");
+            if (tsGroup.includes(targetNenun.slice(-1))) msgs.push("年運天中殺");
+
+            const nenkanChar = typeof nenkan === 'string' ? nenkan.charAt(0) : "";
+            const gekkanChar = typeof gekkan === 'string' ? gekkan.charAt(0) : "";
+            const nikkanChar = typeof safeNikkan === 'string' ? safeNikkan.charAt(0) : "";
+            
+            const pillarsForKango = [
+                { name: '年干', kan: nenkanChar },
+                { name: '月干', kan: gekkanChar },
+                { name: '日干', kan: nikkanChar },
+                { name: '大運', kan: targetDaiun.charAt(0) },
+                { name: '年運', kan: targetNenun.charAt(0) }
+            ];
+
+            for (let i = 0; i < pillarsForKango.length; i++) {
+                for (let j = i + 1; j < pillarsForKango.length; j++) {
+                    const p1 = pillarsForKango[i];
+                    const p2 = pillarsForKango[j];
+                    if (!p1.kan || !p2.kan) continue;
+                    const kangoInfo = typeof getKangoInfo === 'function' ? getKangoInfo(p1.kan, p2.kan) : null;
+                    if (kangoInfo) {
+                        msgs.push(`干合：${kangoInfo.pairName}（${p1.name}・${p2.name}）`);
+                    }
+                }
+            }
+
+            const modalTitle = document.getElementById('kouten-modal-title');
+            const modalBody = document.getElementById('kouten-modal-body');
+
+            modalTitle.innerText = `後天運命式（${targetAge}歳 / ${targetYear}年：大運=${targetDaiun} / 年運=${targetNenun}）`;
+            modalBody.innerHTML = '';
+
+
+            // 4. モーダルに表示するエリアの組み立て
+            const baseResultArea = document.getElementById('result-area');
+            if (baseResultArea) {
+                const cloneArea = baseResultArea.cloneNode(true);
+
+                // ① クローンの中にある #shugoshin-content を取得
+                const clonedShugoContent = cloneArea.querySelector('#shugoshin-content');
+                if (clonedShugoContent) {
+                    
+                    // --- A. 位相法のテキスト作成 ---
+                    const ishouhouHtmlText = koutenIshouhouList.length > 0 
+                        ? koutenIshouhouList.join('、') 
+                        : 'なし';
+
+                    // --- B. 中殺・干合のテキスト作成（ここで msgs をまとめます） ---
+                    let koutenExtraHtml = "";
+                    if (msgs.length > 0) {
+                        koutenExtraHtml += `<br><strong style="color: #d9534f;">【後天運の中殺・干合等】</strong> ${msgs.join('、')}`;
+                    }
+
+                    // --- C. #shugoshin-content にまとめて追記 ---
+                    clonedShugoContent.innerHTML += `<br><strong style="color: #d9534f;">【後天運の位相法】</strong> ${ishouhouHtmlText}${koutenExtraHtml}`;
+                }
+
+                // ② 天中殺要素を探して、大運・年運の列を挿入する
+                const tenchusatsuElem = cloneArea.querySelector('#tenchusatsu-text');
+                if (tenchusatsuElem) {
+                    const tenchusatsuTd = tenchusatsuElem.closest('td') || tenchusatsuElem.parentElement;
+                    if (tenchusatsuTd) {
+                        const tenchusatsuRow = tenchusatsuTd.parentElement;
+                        const extractedTenchuTd = tenchusatsuTd.cloneNode(true);
+                        tenchusatsuTd.remove();
+
+                        const daiunTd = document.createElement('td');
+                        daiunTd.innerHTML = `<div class="pillar-label">大運</div><div class="eto-grid eto-small" style="writing-mode: vertical-rl; text-orientation: upright;">${targetDaiun}</div>`;
+                        
+                        const nenunTd = document.createElement('td');
+                        nenunTd.innerHTML = `<div class="pillar-label">年運</div><div class="eto-grid eto-small" style="writing-mode: vertical-rl; text-orientation: upright;">${targetNenun}</div>`;
+
+                        if (tenchusatsuRow) {
+                            tenchusatsuRow.insertBefore(extractedTenchuTd, tenchusatsuRow.firstElementChild);
+                        }
+
+                        const referenceNode = tenchusatsuRow.children[1] || tenchusatsuRow.lastElementChild;
+                        if (referenceNode) {
+                            referenceNode.before(nenunTd);
+                            referenceNode.before(daiunTd);
+                        }
+                    }
+                }
+
+                // ③ 最後に加工し終わったクローンをモーダル本体に表示
+                modalBody.appendChild(cloneArea);
+            }
+
+            koutenModal.style.display = 'flex';
+        };
+    }
+
+    if (koutenCloseBtn) {
+        koutenCloseBtn.onclick = () => {
+            koutenModal.style.display = 'none';
+        };
+    }
 });
+
 
 // --- saveResultHandler 関数はここより下（DOMContentLoadedの外）に定義してください ---
 async function saveResultHandler() {
@@ -1052,41 +1336,120 @@ currentLoadedHistoryResult = h.result || "";
 } // ← ★ 1. saveResultHandler 関数を閉じる括弧
 
 
-// 1. 位相法グループの定義（位相法2の表を整理）
-const ishou2Groups = [
-    { name: "申子辰", branches: ["申", "子", "辰"] },
-    { name: "巳酉丑", branches: ["巳", "酉", "丑"] },
-    { name: "寅午戌", branches: ["寅", "午", "戌"] },
-    { name: "亥卯未", branches: ["亥", "卯", "未"] }
-];
+// 後天運（大運・年運）を含めて位相法を計算する専用関数（完全双方向対応版）
+function calculateKoutenIshouhou(y, m, d, daiunShi, nenunShi) {
+    let results = [];
+    const getBranch = (str) => {
+        if (!str) return "";
+        const s = String(str).trim();
+        return s.length > 0 ? s.slice(-1) : "";
+    };
+    
+    const bY = getBranch(y);
+    const bM = getBranch(m);
+    const bD = getBranch(d);
+    const bDaiun = getBranch(daiunShi);
+    const bNenun = getBranch(nenunShi);
 
-    // 2. 位相法算出関数
+    console.log("【デバッグ】抽出された支:", { bY, bM, bD, bDaiun, bNenun });
+
+    // 宿命(3つ) ＋ 大運 ＋ 年運 をまとめた配列（グループ判定用）
+    const allBranches = [bY, bM, bD, bDaiun, bNenun].filter(Boolean);
+
+    // (1) 2支の判定（位相法1：宿命同士、大運・年運との組み合わせすべて）
+    const pairs = [
+        ["年", bY, "月", bM], ["月", bM, "日", bD], ["年", bY, "日", bD], // 宿命同士
+        ["大運", bDaiun, "年", bY], ["大運", bDaiun, "月", bM], ["大運", bDaiun, "日", bD], // 大運と宿命
+        ["年運", bNenun, "年", bY], ["年運", bNenun, "月", bM], ["年運", bNenun, "日", bD], // 年運と宿命
+        ["大運", bDaiun, "年運", bNenun] // 大運と年運
+    ];
+
+    pairs.forEach(([label1, b1, label2, b2]) => {
+        if (!b1 || !b2) return;
+        
+        let resultStr = null;
+        
+        // ★完全な双方向チェック（どちらの順番であってもマップから確実に引っ張る）
+        if (ishou1Map[b1] && ishou1Map[b1][b2]) {
+            resultStr = ishou1Map[b1][b2];
+        } else if (ishou1Map[b2] && ishou1Map[b2][b1]) {
+            resultStr = ishou1Map[b2][b1];
+        }
+
+        if (resultStr) {
+            // 例: "支合（大運・年）" のようなテキストを作る
+            const text = `${resultStr}（${label1}・${label2}）`;
+            // 重複して同じ表示が入らないようにガード
+            if (!results.includes(text)) {
+                results.push(text);
+            }
+        }
+    });
+
+    // (2) 3支/2支のグループ判定（位相法2：三合会局・半会）
+    if (typeof ishou2Groups !== 'undefined') {
+        ishou2Groups.forEach(g => {
+            // allBranches から、このグループに含まれる支を抽出し、元の順番を保つかユニークにする
+            const matches = allBranches.filter(b => g.branches.includes(b));
+            const uniqueMatches = [...new Set(matches)];
+
+            if (uniqueMatches.length === 3) {
+                const text = `三合会局（${g.name}）`;
+                if (!results.includes(text)) results.push(text);
+            } else if (uniqueMatches.length === 2) {
+                // どの支が揃っているかをシンプルに表示する（例: 半会（戌・寅））
+                const matchStr = uniqueMatches.join('・');
+                const text = `半会（${matchStr}）`;
+                if (!results.includes(text)) results.push(text);
+            }
+        });
+    }
+
+    return results;
+}
+
+    // 2. 位相法算出関数（完全双方向対応版）
 function calculateIshouhou(y, m, d) {
     let results = [];
     const getBranch = (str) => str.slice(-1);
     const bY = getBranch(y), bM = getBranch(m), bD = getBranch(d);
     const branches = [bY, bM, bD];
 
-    // (1) 2支の判定（位相法1）
+    // (1) 2支の判定（位相法1：完全な双方向チェック）
     const pairs = [["年", bY, "月", bM], ["月", bM, "日", bD], ["年", bY, "日", bD]];
     pairs.forEach(([label1, b1, label2, b2]) => {
+        let resultStr = null;
+        
+        // パターンA: b1 から b2 を引く
         if (ishou1Map[b1] && ishou1Map[b1][b2]) {
-            results.push(`${ishou1Map[b1][b2]}（${label1}・${label2}）`);
+            resultStr = ishou1Map[b1][b2];
+        } 
+        // パターンB: 逆向き（b2 から b1）に引く
+        else if (ishou1Map[b2] && ishou1Map[b2][b1]) {
+            resultStr = ishou1Map[b2][b1];
+        }
+
+        if (resultStr) {
+            const text = `${resultStr}（${label1}・${label2}）`;
+            // 重複して同じ内容がプッシュされないようにガードする
+            if (!results.includes(text)) {
+                results.push(text);
+            }
         }
     });
 
     // (2) 3支/2支のグループ判定（位相法2：三合会局・半会）
     ishou2Groups.forEach(g => {
-        // 命式内の支が、このグループにいくつ含まれているかカウント
         const matches = branches.filter(b => g.branches.includes(b));
         const uniqueMatches = [...new Set(matches)]; // 重複を除去
 
         if (uniqueMatches.length === 3) {
-            results.push(`三合会局（${g.name}）`);
+            const text = `三合会局（${g.name}）`;
+            if (!results.includes(text)) results.push(text);
         } else if (uniqueMatches.length === 2) {
-            // ここで、揃った2つの支だけを表示するように変更
             const matchStr = uniqueMatches.join('・');
-            results.push(`半会（${matchStr}）`);
+            const text = `半会（${matchStr}）`;
+            if (!results.includes(text)) results.push(text);
         }
     });
 
@@ -1118,10 +1481,28 @@ function calculateIshouhou(y, m, d) {
     const isGokan = (tsGroup.includes(yShi) && tsGroup.includes(dShi)) && (yShi !== dShi);
     const isZen = isNichiza && isGetsuChu && isNenChu;
 
-    const ijoList = ['甲午', '丁亥', '戊子', '己亥', '辛巳', '壬午', '癸巳'];
-    const ijoCount = [yEto, mEto, dEto].filter(k => ijoList.includes(k)).length;
+const ijoList = [
+    '壬午', '癸巳', '甲戌', '乙亥', '丙戌', '戊戌', '庚子', '辛亥', '丁巳'
+];
 
-    return { isNenChu, isGetsuChu, isNichiChu, isNishu, isGokan, isNichiza, isZen, ijoCount };
+// ★ここで msgs の箱を用意する
+    let msgs = [];
+    // どの柱が異常干支に該当するかをチェック
+    let matchedPillars = [];
+    if (yEto && ijoList.includes(yEto)) matchedPillars.push('年');
+    if (mEto && ijoList.includes(mEto)) matchedPillars.push('月');
+    if (dEto && ijoList.includes(dEto)) matchedPillars.push('日');
+
+    // 該当する柱があれば「異常干支(月)」のように表示
+    if (matchedPillars.length > 0) {
+        msgs.push(`異常干支（${matchedPillars.join('・')}）`);
+    }
+
+    // ★必要に応じて ijoCount も定義しておく（もし元々使っていれば）
+    const ijoCount = matchedPillars.length;
+
+    // ★return に msgs も含める
+    return { isNenChu, isGetsuChu, isNichiChu, isNishu, isGokan, isNichiza, isZen, ijoCount, matchedPillars };
 };
 
 // 補助関数：日干支から天中殺の支を取得
@@ -2261,3 +2642,20 @@ function appendChatMessage(sender, text) {
     messageDiv.scrollIntoView({ behavior: 'smooth', block: 'end' });
 }
 
+function getChusatsuAndIjoMsgs(chusatsuData) {
+    let msgs = [];
+    if (chusatsuData.isNenChu) msgs.push("生年中殺");
+    if (chusatsuData.isGetsuChu) msgs.push("生月中殺");
+    if (chusatsuData.isNichiChu) msgs.push("生日中殺");
+    if (chusatsuData.isNishu) msgs.push("宿命二中殺");
+    if (chusatsuData.isGokan) msgs.push("互換中殺");
+    if (chusatsuData.isNichiza) msgs.push("日座中殺");
+    if (chusatsuData.isZen) msgs.push("全中殺");
+    
+    // 異常干支の表示をここで新しい形式に統一
+    if (chusatsuData.ijoCount > 0) {
+        const pillarsText = chusatsuData.matchedPillars ? chusatsuData.matchedPillars.join('・') : `${chusatsuData.ijoCount}個`;
+        msgs.push(`異常干支（${pillarsText}）`);
+    }
+    return msgs;
+}

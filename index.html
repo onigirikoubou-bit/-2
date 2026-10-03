@@ -216,6 +216,25 @@ h1 {
 
 </head>
 <body>
+
+<!-- === 後天運 結果表示モーダル === -->
+<div id="kouten-modal" style="display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); align-items: center; justify-content: center;">
+    <div style="background-color: #fcfbf9; width: 90%; max-width: 590px; max-height: 85vh; border-radius: 8px; display: flex; flex-direction: column; box-shadow: 0 4px 15px rgba(0,0,0,0.3); overflow: hidden;">
+        
+        <!-- モーダルヘッダー -->
+        <div style="padding: 12px 20px; background: #333; color: #fff; display: flex; justify-content: space-between; align-items: center;">
+            <h3 id="kouten-modal-title" style="margin: 0; font-size: 16px;">後天運命式</h3>
+            <!-- 「×」ボタン（これ以外では閉じない） -->
+            <button id="kouten-close-btn" style="background: none; border: none; color: #fff; font-size: 24px; cursor: pointer; line-height: 1; padding: 0 5px;">&times;</button>
+        </div>
+
+        <!-- モーダルボディ -->
+        <div id="kouten-modal-body" style="padding: 20px; overflow-y: auto; flex-grow: 1; box-sizing: border-box;">
+            <!-- 後天運の命式結果がここに表示されます -->
+        </div>
+    </div>
+</div>
+
     <!-- 【ステップ1】アプリ全体を上下分割用に包み込むコンテナの開始 -->
     <div id="app-container" style="display: flex; flex-direction: column; min-height: 100vh; background: #fff;">
 
@@ -254,6 +273,22 @@ h1 {
                 <div>
                     <button id="calc-btn" style="padding: 10px 20px; font-size: 16px; cursor: pointer; background: #8a1414; color: #fff; border: none; border-radius: 4px; width: 100%;">算出</button>
                 </div>
+
+<!-- === 後天運 入力セクション（高さ2/3程度にコンパクト化） === -->
+<div class="kouten-section" style="margin-top: 15px; padding: 10px 15px; border: 1px solid #ddd; border-radius: 8px; background: #fff;">
+    <h3 style="font-size: 15px; margin: 0 0 8px 0; color: #333;">後天運を見る</h3>
+    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+        <div>
+            <input type="number" id="kouten-age-input" placeholder="例: 35" style="width: 70px; padding: 4px; font-size: 14px;"> 歳
+        </div>
+        <label style="font-size: 14px; display: flex; align-items: center; gap: 4px; cursor: pointer;">
+            <input type="checkbox" id="kouten-man-checkbox"> 満年齢
+        </label>
+        <button id="calc-kouten-btn" style="padding: 5px 12px; background-color: #4A90E2; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 14px;">
+            後天運算出
+        </button>
+    </div>
+</div>
                 
                 <div class="input-group">
                     <label style="display: block; margin-bottom: 3px;">メモ:</label>
