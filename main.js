@@ -612,27 +612,137 @@ if (shugoshinArea && shugoshinContent && shugoInfo) {
     const sResults = check([shugoInfo.p1, shugoInfo.p2, shugoInfo.p3], true, 0);
     const iResults = check([shugoInfo.i1, shugoInfo.i2], false, 0);
 
-    // --- 中殺・干合の計算 ---
-    const chusatsuData = getKanseiData(trueYearEto, trueMonthEto, dayEto);
-    
-// --- 干合の判定（新しい仕組み） ---
-    let kangoMsgs = [];
-    
-    // 年・月・日のすべての組み合わせ（年・月、月・日、年・日）をまとめてチェック
-    const kangoResults = checkAllKango(nenkan, gekkan, nikkan);
+// ==========================================
+    // 1. 新機能：要調和 ＆ 偏りの判定
+    // ==========================================
+    const gogyoMap = { '木':'甲乙寅卯', '火':'丙丁午巳', '土':'戊己辰戌丑未', '金':'庚辛申酉', '水':'壬癸亥子' };
+    const getG = (c) => { for(let k in gogyoMap) if(gogyoMap[k].includes(c)) return k; return null; };
 
-    // 検出された干合結果をメッセージ用の配列に整形して詰める
-    kangoResults.forEach(item => {
-        // 例: 「丙辛（年・日）」や、必要に応じて表示形式を調整できます
-        kangoMsgs.push(`${item.pairName}（${item.between}）`);
+    // 1) 日干と月支の五行による「要調和」判定
+    let yochouwaMsg = "";
+    const safeNikkanForGogyo = typeof nikkan !== 'undefined' ? nikkan : (typeof dayEto !== 'undefined' ? dayEto : "");
+    const safeGetsujiForGogyo = typeof gesshi !== 'undefined' ? gesshi : "";
+    
+    const nikkanGogyo = getG(safeNikkanForGogyo);
+    const getsujiGogyo = getG(safeGetsujiForGogyo);
+
+    if (nikkanGogyo && getsujiGogyo) {
+        if (nikkanGogyo === "火" && getsujiGogyo === "火") {
+            yochouwaMsg = "火性要調和";
+        } else if (nikkanGogyo === "水" && getsujiGogyo === "水") {
+            yochouwaMsg = "水性要調和";
+        }
+    }
+
+    // 2) 年・月・日の干支における「偏り」判定（3つ以上）
+    let katayoriMsg = "";
+    const targetChars = [
+        typeof nenkan !== 'undefined' ? nenkan : null,
+        typeof gekkan !== 'undefined' ? gekkan : null,
+        safeNikkanForGogyo,
+        typeof nenshi !== 'undefined' ? nenshi : null,
+        safeGetsujiForGogyo,
+        typeof nishi !== 'undefined' ? nishi : null
+    ].filter(Boolean);
+
+    const gogyoCounts = { "木": 0, "火": 0, "土": 0, "金": 0, "水": 0 };
+    targetChars.forEach(char => {
+        const g = getG(char);
+        if (g && gogyoCounts[g] !== undefined) {
+            gogyoCounts[g]++;
+        }
     });
 
-    console.log("干合チェック結果:", kangoMsgs);
-    
-// performCalculation や addEventListener の中ではこう書くだけでOK！
-let msgs = getChusatsuAndIjoMsgs(chusatsuData);
+    let katayoriList = [];
+    for (const [gogyo, count] of Object.entries(gogyoCounts)) {
+        if (count >= 3) {
+            katayoriList.push(`${gogyo}性偏り`);
+        }
+    }
+    if (katayoriList.length > 0) {
+        katayoriMsg = katayoriList.join(" / ");
+    }
 
-    // 3. 表示の更新
+    // 3) フォントをゴシック体に指定したHTML断片を作る
+    let extraGogyoHtml = "";
+    if (yochouwaMsg || katayoriMsg) {
+        extraGogyoHtml = `<div style="margin-top: 6px; font-size: 0.9em; font-family: '游ゴシック', 'Yu Gothic', sans-serif; font-weight: 600; color: #333;">`;
+        if (yochouwaMsg) extraGogyoHtml += `<div>${yochouwaMsg}</div>`;
+        if (katayoriMsg) extraGogyoHtml += `<div>${katayoriMsg}</div>`;
+        extraGogyoHtml += `</div>`;
+    }
+
+    // ==========================================
+    // 2. 中殺・異常干支データの安全生成（2文字の干支を正しく使用）
+    // ==========================================
+    const safeNikkan = safeNikkanForGogyo;
+    const safeYearEto = typeof trueYearEto !== 'undefined' ? trueYearEto : (typeof nenkan !== 'undefined' ? nenkan : "");
+    const safeMonthEto = typeof trueMonthEto !== 'undefined' ? trueMonthEto : (typeof gekkan !== 'undefined' ? gekkan : "");
+    const safeDayEto = typeof dayEto !== 'undefined' ? dayEto : "";
+
+    const currentIjoList = (typeof ijoList !== 'undefined' && Array.isArray(ijoList)) ? ijoList : [
+        '甲戌', '乙亥', '丙戌', '丁亥', '戊子', '己亥', '庚子', '辛亥', '壬戌', '癸亥',
+        '甲辰', '乙巳', '丙辰', '丁巳', '戊午', '己巳', '庚午', '辛巳', '壬辰', '癸巳'
+    ];
+
+    let matchedPillars = [];
+    if (safeYearEto && currentIjoList.includes(safeYearEto)) matchedPillars.push('年');
+    if (safeMonthEto && currentIjoList.includes(safeMonthEto)) matchedPillars.push('月');
+    if (safeDayEto && currentIjoList.includes(safeDayEto)) matchedPillars.push('日');
+
+    let activeChusatsu = (typeof chusatsuData !== 'undefined' && chusatsuData) ? chusatsuData : {
+        isNenChu: typeof isNenChu !== 'undefined' ? isNenChu : false,
+        isGetsuChu: typeof isGetsuChu !== 'undefined' ? isGetsuChu : false,
+        isNichiChu: typeof isNichiChu !== 'undefined' ? isNichiChu : false,
+        isNishu: typeof isNishu !== 'undefined' ? isNishu : false,
+        isGokan: typeof isGokan !== 'undefined' ? isGokan : false,
+        isNichiza: typeof isNichiza !== 'undefined' ? isNichiza : false,
+        isZen: typeof isZen !== 'undefined' ? isZen : false,
+        ijoCount: matchedPillars.length,
+        matchedPillars: matchedPillars
+    };
+
+    let chusatsuMsgs = [];
+    if (typeof getChusatsuAndIjoMsgs === 'function') {
+        chusatsuMsgs = getChusatsuAndIjoMsgs(activeChusatsu);
+    } else {
+        if (activeChusatsu.isNenChu) chusatsuMsgs.push("生年中殺");
+        if (activeChusatsu.isGetsuChu) chusatsuMsgs.push("生月中殺");
+        if (activeChusatsu.isNichiChu) chusatsuMsgs.push("生日中殺");
+        if (activeChusatsu.ijoCount > 0) {
+            chusatsuMsgs.push(`異常干支（${activeChusatsu.matchedPillars.join('・')}）`);
+        }
+    }
+
+    // ==========================================
+    // 3. 干合のメッセージ配列作成
+    // ==========================================
+    let kangoResultMsgs = [];
+    const nenkanChar = typeof nenkan === 'string' && nenkan.length > 0 ? nenkan.charAt(0) : "";
+    const gekkanChar = typeof gekkan === 'string' && gekkan.length > 0 ? gekkan.charAt(0) : "";
+    const nikkanChar = typeof safeNikkan === 'string' && safeNikkan.length > 0 ? safeNikkan.charAt(0) : "";
+    
+    const pillarsForKango = [
+        { name: '年干', kan: nenkanChar },
+        { name: '月干', kan: gekkanChar },
+        { name: '日干', kan: nikkanChar }
+    ];
+
+    for (let i = 0; i < pillarsForKango.length; i++) {
+        for (let j = i + 1; j < pillarsForKango.length; j++) {
+            const p1 = pillarsForKango[i];
+            const p2 = pillarsForKango[j];
+            if (!p1.kan || !p2.kan) continue;
+            const kangoInfo = typeof getKangoInfo === 'function' ? getKangoInfo(p1.kan, p2.kan) : null;
+            if (kangoInfo) {
+                kangoResultMsgs.push(`${kangoInfo.pairName}（${p1.name}・${p2.name}）`);
+            }
+        }
+    }
+
+    // ==========================================
+    // 4. 表示の更新
+    // ==========================================
     shugoshinContent.innerHTML = `
     <div style="font-size: 18px; font-family: '游明朝', 'Yu Mincho', serif;">
         <span style="font-family: '游明朝', 'Yu Mincho', serif;">守護神：</span>
@@ -640,6 +750,9 @@ let msgs = getChusatsuAndIjoMsgs(chusatsuData);
         
         <span style="font-family: '游明朝', 'Yu Mincho', serif;">忌神：</span>
         <span style="font-family: '游ゴシック', 'Yu Gothic', sans-serif; font-weight: 600;">${formatShugoList([shugoInfo.i1, shugoInfo.i2])}</span>
+        
+        <!-- ▼ ゴシック体・太字にした要調和・偏りを忌神のすぐ下に挿入 -->
+        ${extraGogyoHtml}
         
         <hr style="width: 80%; margin: 10px auto 10px 0; border: 0; border-top: 1px solid #ccc;">
         
@@ -651,16 +764,17 @@ let msgs = getChusatsuAndIjoMsgs(chusatsuData);
         
         <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #ccc;">
             <span style="font-family: '游明朝', 'Yu Mincho', serif;">中殺：</span>
-            <span style="font-family: '游ゴシック', 'Yu Gothic', sans-serif; font-weight: 600;">${msgs.length > 0 ? msgs.join('、') : 'なし'}</span><br>
+            <span style="font-family: '游ゴシック', 'Yu Gothic', sans-serif; font-weight: 600;">${chusatsuMsgs.length > 0 ? chusatsuMsgs.join('、') : 'なし'}</span><br>
             
             <span style="font-family: '游明朝', 'Yu Mincho', serif;">干合：</span>
-            <span style="font-family: '游ゴシック', 'Yu Gothic', sans-serif; font-weight: 600;">${kangoMsgs.length > 0 ? kangoMsgs.join('、') : 'なし'}</span><br>
+            <span style="font-family: '游ゴシック', 'Yu Gothic', sans-serif; font-weight: 600;">${kangoResultMsgs.length > 0 ? kangoResultMsgs.join('、') : 'なし'}</span><br>
             
             <span style="font-family: '游明朝', 'Yu Mincho', serif;">位相法：</span><br>
             <span style="font-family: '游ゴシック', 'Yu Gothic', sans-serif; font-weight: 600;">&nbsp;&nbsp;${calculateIshouhou(trueYearEto, trueMonthEto, dayEto).join('<br>&nbsp;&nbsp;')}</span>
         </div>
     </div>`;
     shugoshinArea.style.display = 'block';
+    
 
     // 大運計算
     function getAccurateSetsuiriDateFromMaster(year, month) {
@@ -1080,7 +1194,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const safeNikkan = typeof nikkan !== 'undefined' ? nikkan : (typeof dayEto !== 'undefined' ? dayEto : "");
             const safeYearEto = typeof nenkan !== 'undefined' ? nenkan : (typeof yearEto !== 'undefined' ? yearEto : "");
 
-            const chusatsuData = (typeof getKanseiData === 'function' && safeYearEto && safeMonthEto) 
+            const Data = (typeof getKanseiData === 'function' && safeYearEto && safeMonthEto) 
                 ? getKanseiData(safeYearEto, safeMonthEto, safeNikkan) 
                 : {};
             
