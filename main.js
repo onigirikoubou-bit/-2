@@ -618,7 +618,6 @@ if (shugoshinArea && shugoshinContent && shugoInfo) {
     const gogyoMap = { '木':'甲乙寅卯', '火':'丙丁午巳', '土':'戊己辰戌丑未', '金':'庚辛申酉', '水':'壬癸亥子' };
     const getG = (c) => { for(let k in gogyoMap) if(gogyoMap[k].includes(c)) return k; return null; };
 
-    // 1) 日干と月支の五行による「要調和」判定
     let yochouwaMsg = "";
     const safeNikkanForGogyo = typeof nikkan !== 'undefined' ? nikkan : (typeof dayEto !== 'undefined' ? dayEto : "");
     const safeGetsujiForGogyo = typeof gesshi !== 'undefined' ? gesshi : "";
@@ -634,7 +633,6 @@ if (shugoshinArea && shugoshinContent && shugoInfo) {
         }
     }
 
-    // 2) 年・月・日の干支における「偏り」判定（3つ以上）
     let katayoriMsg = "";
     const targetChars = [
         typeof nenkan !== 'undefined' ? nenkan : null,
@@ -663,7 +661,6 @@ if (shugoshinArea && shugoshinContent && shugoInfo) {
         katayoriMsg = katayoriList.join(" / ");
     }
 
-    // 3) フォントをゴシック体に指定したHTML断片を作る
     let extraGogyoHtml = "";
     if (yochouwaMsg || katayoriMsg) {
         extraGogyoHtml = `<div style="margin-top: 6px; font-size: 0.9em; font-family: '游ゴシック', 'Yu Gothic', sans-serif; font-weight: 600; color: #333;">`;
@@ -673,75 +670,236 @@ if (shugoshinArea && shugoshinContent && shugoInfo) {
     }
 
     // ==========================================
-    // 2. 中殺・異常干支データの安全生成（2文字の干支を正しく使用）
+    // 2. 干合の配列作成
     // ==========================================
     const safeNikkan = safeNikkanForGogyo;
-    const safeYearEto = typeof trueYearEto !== 'undefined' ? trueYearEto : (typeof nenkan !== 'undefined' ? nenkan : "");
-    const safeMonthEto = typeof trueMonthEto !== 'undefined' ? trueMonthEto : (typeof gekkan !== 'undefined' ? gekkan : "");
-    const safeDayEto = typeof dayEto !== 'undefined' ? dayEto : "";
-
-    const currentIjoList = (typeof ijoList !== 'undefined' && Array.isArray(ijoList)) ? ijoList : [
-        '甲戌', '乙亥', '丙戌', '丁亥', '戊子', '己亥', '庚子', '辛亥', '壬戌', '癸亥',
-        '甲辰', '乙巳', '丙辰', '丁巳', '戊午', '己巳', '庚午', '辛巳', '壬辰', '癸巳'
-    ];
-
-    let matchedPillars = [];
-    if (safeYearEto && currentIjoList.includes(safeYearEto)) matchedPillars.push('年');
-    if (safeMonthEto && currentIjoList.includes(safeMonthEto)) matchedPillars.push('月');
-    if (safeDayEto && currentIjoList.includes(safeDayEto)) matchedPillars.push('日');
-
-    let activeChusatsu = (typeof chusatsuData !== 'undefined' && chusatsuData) ? chusatsuData : {
-        isNenChu: typeof isNenChu !== 'undefined' ? isNenChu : false,
-        isGetsuChu: typeof isGetsuChu !== 'undefined' ? isGetsuChu : false,
-        isNichiChu: typeof isNichiChu !== 'undefined' ? isNichiChu : false,
-        isNishu: typeof isNishu !== 'undefined' ? isNishu : false,
-        isGokan: typeof isGokan !== 'undefined' ? isGokan : false,
-        isNichiza: typeof isNichiza !== 'undefined' ? isNichiza : false,
-        isZen: typeof isZen !== 'undefined' ? isZen : false,
-        ijoCount: matchedPillars.length,
-        matchedPillars: matchedPillars
-    };
-
-    let chusatsuMsgs = [];
-    if (typeof getChusatsuAndIjoMsgs === 'function') {
-        chusatsuMsgs = getChusatsuAndIjoMsgs(activeChusatsu);
-    } else {
-        if (activeChusatsu.isNenChu) chusatsuMsgs.push("生年中殺");
-        if (activeChusatsu.isGetsuChu) chusatsuMsgs.push("生月中殺");
-        if (activeChusatsu.isNichiChu) chusatsuMsgs.push("生日中殺");
-        if (activeChusatsu.ijoCount > 0) {
-            chusatsuMsgs.push(`異常干支（${activeChusatsu.matchedPillars.join('・')}）`);
-        }
-    }
-
-    // ==========================================
-    // 3. 干合のメッセージ配列作成
-    // ==========================================
-    let kangoResultMsgs = [];
     const nenkanChar = typeof nenkan === 'string' && nenkan.length > 0 ? nenkan.charAt(0) : "";
     const gekkanChar = typeof gekkan === 'string' && gekkan.length > 0 ? gekkan.charAt(0) : "";
     const nikkanChar = typeof safeNikkan === 'string' && safeNikkan.length > 0 ? safeNikkan.charAt(0) : "";
     
-    const pillarsForKango = [
-        { name: '年干', kan: nenkanChar },
-        { name: '月干', kan: gekkanChar },
-        { name: '日干', kan: nikkanChar }
-    ];
+    let kangoResultMsgs = [];
+    if (typeof checkAllKango === 'function') {
+        const kangoResults = checkAllKango(nenkan, gekkan, nikkan);
+        kangoResults.forEach(item => {
+            kangoResultMsgs.push(`${item.pairName}（${item.between}）`);
+        });
+    }
 
-    for (let i = 0; i < pillarsForKango.length; i++) {
-        for (let j = i + 1; j < pillarsForKango.length; j++) {
-            const p1 = pillarsForKango[i];
-            const p2 = pillarsForKango[j];
-            if (!p1.kan || !p2.kan) continue;
-            const kangoInfo = typeof getKangoInfo === 'function' ? getKangoInfo(p1.kan, p2.kan) : null;
-            if (kangoInfo) {
-                kangoResultMsgs.push(`${kangoInfo.pairName}（${p1.name}・${p2.name}）`);
+    // ==========================================
+    // 3. 守護神・忌神の帝王・透干 厳密判定
+    // ==========================================
+    let shugoTeiou = false;
+    let kijiTeiou = false;
+    let shugoToukan = false;
+    let kijiToukan = false;
+
+    if (shugoInfo) {
+        const tenkanList = [nenkan, gekkan, nikkan].filter(Boolean);
+
+        const getStarForPillar = (pillarKan, pillarShi) => {
+            const fullEto = pillarKan + pillarShi;
+            if (typeof findJuni === 'function') {
+                let res = findJuni(fullEto);
+                if (res && res !== '--') return res;
+                res = findJuni(pillarShi);
+                if (res && res !== '--') return res;
+            }
+            if (window.JUNI_IMAGE_TABLE) {
+                let row = window.JUNI_IMAGE_TABLE.find(r => r[safeNikkan] === pillarShi || r['eto'] === fullEto);
+                if (row && row.star) return row.star;
+            }
+            return "--";
+        };
+
+        const pillarData = {
+            '年': { kan: nenkan, shi: typeof nenshi !== 'undefined' ? nenshi : '' },
+            '月': { kan: gekkan, shi: typeof gesshi !== 'undefined' ? gesshi : '' },
+            '日': { kan: nikkanChar, shi: typeof nishi !== 'undefined' ? nishi : '' }
+        };
+
+        const evaluateGodWithRootCheck = (targetGod, isKiji = false) => {
+            if (!targetGod) return { exists: false, pillar: null, valid: false, isBogo: false };
+            
+            let matchedPillar = null;
+            let foundKan = null;
+            let foundShi = null;
+            const targetGogyo = getG(targetGod) || targetGod;
+
+            for (const [pKey, pVal] of Object.entries(pillarData)) {
+                const kanFirstChar = pVal.kan ? pVal.kan.charAt(0) : "";
+                if (pVal.kan === targetGod || kanFirstChar === targetGod || getG(kanFirstChar) === targetGogyo || getG(pVal.kan) === targetGogyo) {
+                    matchedPillar = pKey;
+                    foundKan = kanFirstChar;
+                    foundShi = pVal.shi;
+                    break;
+                }
+            }
+
+            if (!matchedPillar) {
+                const evalRes = evaluate(targetGod);
+                if (evalRes.match) {
+                    return { exists: true, pillar: null, valid: true, isBogo: false };
+                }
+                return { exists: false, pillar: null, valid: false, isBogo: false };
+            }
+
+            const shiGogyo = getG(foundShi);
+            const isEarthRoot = (shiGogyo === '土');
+            const isBogoException = isKiji && (foundKan === '戊' && foundShi === '午');
+
+            let isValid = true;
+            if (isEarthRoot) {
+                if (isBogoException) {
+                    isValid = true;
+                } else {
+                    isValid = false;
+                }
+            }
+
+            return { exists: true, pillar: matchedPillar, valid: isValid, isBogo: isBogoException, foundKan, foundShi };
+        };
+
+        const p1Eval = evaluateGodWithRootCheck(shugoInfo.p1, false);
+        const i1Eval = evaluateGodWithRootCheck(shugoInfo.i1, true);
+
+        const checkToukan = (godChar) => {
+            if (!godChar) return false;
+            const godG = getG(godChar) || godChar;
+            return tenkanList.some(t => t === godChar || getG(t) === godG || getG(t.charAt(0)) === godG);
+        };
+
+        const isP1Toukan = p1Eval.exists && checkToukan(shugoInfo.p1);
+        const isI1Toukan = i1Eval.exists && checkToukan(shugoInfo.i1);
+
+        const isPillarClean = (pillar) => {
+            if (!pillar) return true;
+            const hasKango = kangoResultMsgs.some(m => m.includes(pillar));
+            if (hasKango) return false;
+            return true;
+        };
+
+        // --- 忌神側の判定（最優先） ---
+        if (i1Eval.exists && i1Eval.valid && isPillarClean(i1Eval.pillar)) {
+            if (isI1Toukan) {
+                // ★ 帝王になるのは「戊午（ボゴ特例）」のときのみとし、戊申などの場合は確実に「忌神透干」にする
+                if (i1Eval.isBogo) {
+                    kijiTeiou = true;
+                } else {
+                    kijiToukan = true;
+                }
+            }
+        }
+
+        // --- 守護神側の判定 ---
+        if (!kijiTeiou && !kijiToukan && p1Eval.exists && p1Eval.valid && isPillarClean(p1Eval.pillar)) {
+            if (p1Eval.exists && p1Eval.isBogo) {
+                shugoTeiou = true;
+            } else if (isP1Toukan) {
+                shugoToukan = true;
             }
         }
     }
 
     // ==========================================
-    // 4. 表示の更新
+    // 4. 中殺データの取得 ＆ 異常干支の判定リスト
+    // ==========================================
+    const chusatsuData = typeof getKanseiData === 'function' ? getKanseiData(trueYearEto, trueMonthEto, dayEto) : {};
+    
+    let chusatsuMsgs = [];
+    if (chusatsuData.isNenChu) chusatsuMsgs.push("生年中殺");
+    if (chusatsuData.isGetsuChu) chusatsuMsgs.push("生月中殺");
+    if (chusatsuData.isNichiChu) chusatsuMsgs.push("生日中殺");
+    if (chusatsuData.isNishu) chusatsuMsgs.push("宿命二中殺");
+    if (chusatsuData.isGokan) chusatsuMsgs.push("互換中殺");
+    if (chusatsuData.isNichiza) chusatsuMsgs.push("日座中殺");
+    if (chusatsuData.isZen) chusatsuMsgs.push("全中殺");
+
+        const currentIjoList = ['甲午', '丁亥', '戊子', '己亥', '辛巳', '壬午', '癸巳', '甲戌', '乙亥', '丙戌', '戊戌', '庚子', '辛亥', '丁巳'];
+
+    const safeYearEto = typeof trueYearEto !== 'undefined' ? trueYearEto : (typeof nenkan !== 'undefined' ? nenkan : "");
+    const safeMonthEto = typeof trueMonthEto !== 'undefined' ? trueMonthEto : (typeof gekkan !== 'undefined' ? gekkan : "");
+    const safeDayEto = typeof dayEto !== 'undefined' ? dayEto : "";
+
+    let matchedIjoPillars = [];
+    if (safeYearEto && currentIjoList.includes(safeYearEto)) matchedIjoPillars.push('年');
+    if (safeMonthEto && currentIjoList.includes(safeMonthEto)) matchedIjoPillars.push('月');
+    if (safeDayEto && currentIjoList.includes(safeDayEto)) matchedIjoPillars.push('日');
+
+    if (chusatsuData.ijoCount > 0 || matchedIjoPillars.length > 0) {
+        const pillarsToDisplay = (chusatsuData.matchedPillars && chusatsuData.matchedPillars.length > 0) 
+            ? chusatsuData.matchedPillars 
+            : matchedIjoPillars;
+
+        if (pillarsToDisplay.length > 0) {
+            chusatsuMsgs.push(`異常干支（${pillarsToDisplay.join('・')}）`);
+        } else {
+            const count = chusatsuData.ijoCount || matchedIjoPillars.length;
+            chusatsuMsgs.push(`異常干支(${count}個)`);
+        }
+    }
+
+    if (chusatsuMsgs.length === 0) {
+        if (typeof isGetsuChu !== 'undefined' && isGetsuChu) chusatsuMsgs.push("生月中殺");
+        if (typeof isNenChu !== 'undefined' && isNenChu) chusatsuMsgs.push("生年中殺");
+        if (typeof isNichiChu !== 'undefined' && isNichiChu) chusatsuMsgs.push("生日中殺");
+    }
+
+    // ==========================================
+    // 5. 位法（破［巳と申］を完璧に統合・整形）
+    // ==========================================
+    let ishouhouArr = [];
+    if (typeof calculateIshouhou === 'function') {
+        const base = calculateIshouhou(trueYearEto, trueMonthEto, dayEto);
+        if (Array.isArray(base)) ishouhouArr = [...base];
+    }
+
+    const getShiChar = (val) => {
+        if (!val || typeof val !== 'string') return '';
+        return val.charAt(val.length - 1);
+    };
+
+    const sNen = getShiChar(typeof nenshi !== 'undefined' ? nenshi : safeYearEto);
+    const sGetsu = getShiChar(typeof gesshi !== 'undefined' ? gesshi : safeMonthEto);
+    const sNichi = getShiChar(typeof nishi !== 'undefined' ? nishi : safeDayEto);
+
+    const pairsToCheck = [
+        { name: '（年・月）', s1: sNen, s2: sGetsu },
+        { name: '（月・日）', s1: sGetsu, s2: sNichi },
+        { name: '（年・日）', s1: sNen, s2: sNichi }
+    ];
+
+    if (typeof ishou1Map !== 'undefined') {
+        pairsToCheck.forEach(pair => {
+            if (pair.s1 && pair.s2) {
+                let relationStr = ishou1Map[pair.s1]?.[pair.s2] || "";
+                
+                // 巳と申の場合は「破」を確実に付与
+                const isMiAndShin = (pair.s1 === '巳' && pair.s2 === '申') || (pair.s1 === '申' && pair.s2 === '巳');
+                if (isMiAndShin) {
+                    if (!relationStr.includes('破')) {
+                        relationStr = relationStr ? `${relationStr}・破` : '破';
+                    }
+                }
+
+                if (relationStr) {
+                    // すでに同じ括弧（例: （月・日））の要素がishouhouArrにあれば、そこに「・破」などを綺麗に結合して上書きする
+                    const targetIndex = ishouhouArr.findIndex(i => i.includes(pair.name));
+                    if (targetIndex !== -1) {
+                        // 既存の要素から関係性部分（例: 支合・生貴刑）と括弧部分を分解、あるいはrelationStrで置き換え/マージ
+                        if (!ishouhouArr[targetIndex].includes(relationStr)) {
+                            // もし既存の文字列に破がなくて relationStr にある場合は relationStr に更新
+                            ishouhouArr[targetIndex] = `${relationStr}${pair.name}`;
+                        }
+                    } else {
+                        ishouhouArr.push(`${relationStr}${pair.name}`);
+                    }
+                }
+            }
+        });
+    }
+
+    // ==========================================
+    // 6. 表示の更新
     // ==========================================
     shugoshinContent.innerHTML = `
     <div style="font-size: 18px; font-family: '游明朝', 'Yu Mincho', serif;">
@@ -751,7 +909,6 @@ if (shugoshinArea && shugoshinContent && shugoInfo) {
         <span style="font-family: '游明朝', 'Yu Mincho', serif;">忌神：</span>
         <span style="font-family: '游ゴシック', 'Yu Gothic', sans-serif; font-weight: 600;">${formatShugoList([shugoInfo.i1, shugoInfo.i2])}</span>
         
-        <!-- ▼ ゴシック体・太字にした要調和・偏りを忌神のすぐ下に挿入 -->
         ${extraGogyoHtml}
         
         <hr style="width: 80%; margin: 10px auto 10px 0; border: 0; border-top: 1px solid #ccc;">
@@ -762,6 +919,13 @@ if (shugoshinArea && shugoshinContent && shugoInfo) {
         <span style="font-family: '游明朝', 'Yu Mincho', serif;">命式内忌神：</span>
         <span style="font-family: '游ゴシック', 'Yu Gothic', sans-serif; font-weight: 600;">${iResults.length > 0 ? iResults.join('、') : 'なし'}</span>
         
+        <div style="margin-top: 6px; font-size: 0.9em; font-family: '游ゴシック', 'Yu Gothic', sans-serif; font-weight: 600; color: #333;">
+            ${shugoTeiou ? '<div>守護神帝王</div>' : ''}
+            ${kijiTeiou ? '<div>忌神帝王</div>' : ''}
+            ${shugoToukan ? '<div>守護神透干</div>' : ''}
+            ${kijiToukan ? '<div>忌神透干</div>' : ''}
+        </div>
+        
         <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #ccc;">
             <span style="font-family: '游明朝', 'Yu Mincho', serif;">中殺：</span>
             <span style="font-family: '游ゴシック', 'Yu Gothic', sans-serif; font-weight: 600;">${chusatsuMsgs.length > 0 ? chusatsuMsgs.join('、') : 'なし'}</span><br>
@@ -770,7 +934,7 @@ if (shugoshinArea && shugoshinContent && shugoInfo) {
             <span style="font-family: '游ゴシック', 'Yu Gothic', sans-serif; font-weight: 600;">${kangoResultMsgs.length > 0 ? kangoResultMsgs.join('、') : 'なし'}</span><br>
             
             <span style="font-family: '游明朝', 'Yu Mincho', serif;">位相法：</span><br>
-            <span style="font-family: '游ゴシック', 'Yu Gothic', sans-serif; font-weight: 600;">&nbsp;&nbsp;${calculateIshouhou(trueYearEto, trueMonthEto, dayEto).join('<br>&nbsp;&nbsp;')}</span>
+            <span style="font-family: '游ゴシック', 'Yu Gothic', sans-serif; font-weight: 600;">&nbsp;&nbsp;${ishouhouArr.length > 0 ? ishouhouArr.join('<br>&nbsp;&nbsp;') : 'なし'}</span>
         </div>
     </div>`;
     shugoshinArea.style.display = 'block';
