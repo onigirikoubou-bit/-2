@@ -803,7 +803,9 @@ if (shugoshinArea && shugoshinContent && shugoInfo) {
     // ==========================================
     // 4. 中殺データの取得 ＆ 異常干支の判定リスト
     // ==========================================
-    const chusatsuData = typeof getKanseiData === 'function' ? getKanseiData(trueYearEto, trueMonthEto, dayEto) : {};
+    // グローバル（window）にも保持させて、後天運など他の処理からも参照できるようにする
+    window.chusatsuData = typeof getKanseiData === 'function' ? getKanseiData(trueYearEto, trueMonthEto, dayEto) : {};
+    const chusatsuData = window.chusatsuData;
     
     let chusatsuMsgs = [];
     if (chusatsuData.isNenChu) chusatsuMsgs.push("生年中殺");
