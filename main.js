@@ -814,7 +814,7 @@ if (shugoshinArea && shugoshinContent && shugoInfo) {
     if (chusatsuData.isNichiza) chusatsuMsgs.push("日座中殺");
     if (chusatsuData.isZen) chusatsuMsgs.push("全中殺");
 
-        const currentIjoList = ['甲午', '丁亥', '戊子', '己亥', '辛巳', '壬午', '癸巳', '甲戌', '乙亥', '丙戌', '戊戌', '庚子', '辛亥', '丁巳'];
+        const currentIjoList = ['甲午', '丁亥', '戊子', '己亥', '辛巳', '壬午', '癸巳'];
 
     const safeYearEto = typeof trueYearEto !== 'undefined' ? trueYearEto : (typeof nenkan !== 'undefined' ? nenkan : "");
     const safeMonthEto = typeof trueMonthEto !== 'undefined' ? trueMonthEto : (typeof gekkan !== 'undefined' ? gekkan : "");
